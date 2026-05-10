@@ -115,15 +115,48 @@
 
 {% block extra_js %}
 <script>
-    // Banco visible solo si método es transferencia/tarjeta
+    // Banco visible solo si método es transferencia/tarjeta, con lógica para Payphone
     (function () {
         const metodoSel = document.getElementById('id_metodo');
         const bloqueBanco = document.getElementById('bloque-banco');
         if (!metodoSel || !bloqueBanco) return;
+
         function actualizar() {
-            const v = metodoSel.value;
-            bloqueBanco.style.display = (v === 'transferencia' || v === 'tarjeta') ? 'block' : 'none';
+            const bancoSel = document.getElementById('id_banco');
+            const labelBanco = bloqueBanco.querySelector('label');
+            
+            if (metodoSel.value === 'transferencia') {
+                bloqueBanco.style.display = 'block';
+                if (labelBanco) labelBanco.innerText = '🏦 Banco *';
+                if (bancoSel) {
+                    Array.from(bancoSel.options).forEach(opt => {
+                        if (opt.value === 'payphone') {
+                            opt.style.display = 'none';
+                        } else {
+                            opt.style.display = '';
+                        }
+                    });
+                    if (bancoSel.value === 'payphone') bancoSel.value = '';
+                }
+            } else if (metodoSel.value === 'tarjeta') {
+                bloqueBanco.style.display = 'block';
+                if (labelBanco) labelBanco.innerText = '💳 Tarjeta / App *';
+                if (bancoSel) {
+                    Array.from(bancoSel.options).forEach(opt => {
+                        if (opt.value === 'payphone' || opt.value === '') {
+                            opt.style.display = '';
+                        } else {
+                            opt.style.display = 'none';
+                        }
+                    });
+                    if (bancoSel.value !== 'payphone') bancoSel.value = 'payphone';
+                }
+            } else {
+                bloqueBanco.style.display = 'none';
+                if (bancoSel) bancoSel.value = '';
+            }
         }
+        
         metodoSel.addEventListener('change', actualizar);
         actualizar();
     })();

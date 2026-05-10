@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Adicional, Categoria, Comprobante, Curso, JornadaCurso,
-    Estudiante, Matricula, PersonaExterna,
+    Estudiante, Matricula, PersonaExterna, RecuperacionPendiente,
 )
 
 
@@ -127,6 +127,7 @@ class ComprobanteAdmin(admin.ModelAdmin):
         }),
     )
 
+
 @admin.register(PersonaExterna)
 class PersonaExternaAdmin(admin.ModelAdmin):
     list_display = ('cedula', 'apellidos', 'nombres', 'celular', 'correo', 'ciudad', 'creado')
@@ -178,3 +179,38 @@ class AdicionalAdmin(admin.ModelAdmin):
     def persona_nombre_admin(self, obj):
         return obj.persona_nombre
     persona_nombre_admin.short_description = 'Persona'
+
+
+@admin.register(RecuperacionPendiente)
+class RecuperacionPendienteAdmin(admin.ModelAdmin):
+    list_display = (
+        'matricula', 'numero_modulo', 'fecha_marcada',
+        'saldo_pendiente_al_marcar', 'pagada', 'fecha_recuperacion',
+        'creado',
+    )
+    list_filter = ('pagada', 'numero_modulo', 'fecha_marcada')
+    search_fields = (
+        'matricula__estudiante__cedula',
+        'matricula__estudiante__apellidos',
+        'matricula__estudiante__nombres',
+        'matricula__curso__nombre',
+    )
+    autocomplete_fields = ('matricula',)
+    readonly_fields = ('creado', 'actualizado')
+    date_hierarchy = 'fecha_marcada'
+    fieldsets = (
+        ('Datos de la clase a recuperar', {
+            'fields': ('matricula', 'numero_modulo', 'fecha_marcada',
+                       'saldo_pendiente_al_marcar'),
+        }),
+        ('Estado del cobro', {
+            'fields': ('pagada', 'fecha_recuperacion', 'abono'),
+        }),
+        ('Notas', {
+            'fields': ('observaciones',),
+        }),
+        ('Auditoría', {
+            'classes': ('collapse',),
+            'fields': ('creado', 'actualizado'),
+        }),
+    )
