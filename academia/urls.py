@@ -123,6 +123,11 @@ urlpatterns = [
          views.api_curso_jornadas, name='api_curso_jornadas'),
     path('api/categoria/crear/',
          views.api_categoria_crear, name='api_categoria_crear'),
+    # ↓ NUEVOS: listar y eliminar categorías (para el selector custom del form de cursos)
+    path('api/categoria/listar/',
+         views.api_categoria_listar, name='api_categoria_listar'),
+    path('api/categoria/<int:pk>/eliminar/',
+         views.api_categoria_eliminar, name='api_categoria_eliminar'),
     # ↓ NUEVO: autocompletar datos del estudiante por cédula
     path('api/estudiante/<str:cedula>/',
          views.api_estudiante_por_cedula, name='api_estudiante_por_cedula'),

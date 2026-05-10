@@ -657,6 +657,69 @@ def api_categoria_crear(request):
     })
 
 
+@require_http_methods(['GET'])
+def api_categoria_listar(request):
+    """
+    Devuelve la lista de categorías activas (id, nombre, color, descripción)
+    para refrescar el selector del formulario de cursos sin recargar página.
+    """
+    categorias = (Categoria.objects
+                  .filter(activo=True)
+                  .order_by('orden', 'nombre')
+                  .values('id', 'nombre', 'color', 'descripcion'))
+    return JsonResponse({
+        'ok': True,
+        'categorias': list(categorias),
+    })
+
+
+@admin_requerido
+@require_http_methods(['POST'])
+def api_categoria_eliminar(request, pk):
+    """
+    Elimina una categoría. Si tiene cursos asociados, devuelve 409 (Conflict)
+    en lugar de borrar — gracias a `on_delete=PROTECT` en el modelo Curso.
+    Solo administradores pueden borrar.
+    """
+    from django.db.models import ProtectedError
+
+    try:
+        categoria = Categoria.objects.get(pk=pk)
+    except Categoria.DoesNotExist:
+        return JsonResponse(
+            {'ok': False, 'error': 'La categoría ya no existe.'},
+            status=404
+        )
+
+    nombre = categoria.nombre
+    cursos_asociados = categoria.cursos.count()
+
+    if cursos_asociados > 0:
+        return JsonResponse({
+            'ok': False,
+            'error': (
+                f'No se puede eliminar "{nombre}" porque tiene '
+                f'{cursos_asociados} curso(s) asociado(s). Reasigna o elimina '
+                f'esos cursos primero.'
+            ),
+            'cursos_asociados': cursos_asociados,
+        }, status=409)
+
+    try:
+        categoria.delete()
+    except ProtectedError:
+        # Doble seguro por si Django detecta otra protección
+        return JsonResponse({
+            'ok': False,
+            'error': f'No se puede eliminar "{nombre}" porque tiene registros relacionados.',
+        }, status=409)
+
+    return JsonResponse({
+        'ok': True,
+        'mensaje': f'Categoría "{nombre}" eliminada correctamente.',
+    })
+
+
 # ─────────────────────────────────────────────────────────
 # Exportación: Lista de matrículas a Excel y PDF
 # ─────────────────────────────────────────────────────────

@@ -12,18 +12,18 @@
     style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom: 24px;">
     <div>
         <h2 class="page-title">Centro de Ayuda</h2>
-        <p class="page-subtitle">Manuales, tutoriales y soporte técnico para el uso del sistema.</p>
+        <p class="page-subtitle">Manuales, tutoriales y soporte técnico para el uso del sistema. Última revisión: mayo 2026 (v2.4).</p>
     </div>
 </div>
 
 
 {# ── Índice de Soporte ──────────────────────── #}
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 28px;">
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 28px;">
 
     <div class="card-box" style="padding: 18px; border-top: 4px solid #1a237e;">
         <h3 style="font-size:16px; color:#1a237e; margin-bottom: 8px;">🎓 Matrículas</h3>
         <p style="font-size:13px; color:#666; margin-bottom:12px; line-height:1.4;">
-            Aprende a registrar nuevos estudiantes y asignarles cursos y jornadas (Presencial/Online).
+            Cómo registrar nuevos estudiantes, asignar curso y jornada, aplicar descuentos y elegir el tipo de matrícula.
         </p>
         <a href="#ayuda-matriculas" class="btn btn-secondary btn-sm">Ver manual ↓</a>
     </div>
@@ -31,64 +31,325 @@
     <div class="card-box" style="padding: 18px; border-top: 4px solid #2e7d32;">
         <h3 style="font-size:16px; color:#1a237e; margin-bottom: 8px;">💵 Pagos y Abonos</h3>
         <p style="font-size:13px; color:#666; margin-bottom:12px; line-height:1.4;">
-            Cómo registrar cobros parciales o totales de estudiantes ya matriculados.
+            Registrar Abono, Pago Completo, Pago por Módulo o Clase de Recuperación. Generación automática de recibos.
         </p>
         <a href="#ayuda-pagos" class="btn btn-secondary btn-sm">Ver manual ↓</a>
     </div>
 
-    <div class="card-box" style="padding: 18px; border-top: 4px solid #FFD700;">
-        <h3 style="font-size:16px; color:#1a237e; margin-bottom: 8px;">🧾 Comprobantes de Venta</h3>
+    <div class="card-box" style="padding: 18px; border-top: 4px solid #283593;">
+        <h3 style="font-size:16px; color:#1a237e; margin-bottom: 8px;">📊 Pagos por Módulo</h3>
         <p style="font-size:13px; color:#666; margin-bottom:12px; line-height:1.4;">
-            Instrucciones para generar comprobantes rápidos y llevar el ranking de asesoras.
+            La matriz de control semanal: cómo se reparte la reserva, qué significa cada color y por qué Programa Completo se ve verde.
+        </p>
+        <a href="#ayuda-por-modulo" class="btn btn-secondary btn-sm">Ver manual ↓</a>
+    </div>
+
+    <div class="card-box" style="padding: 18px; border-top: 4px solid #ef6c00;">
+        <h3 style="font-size:16px; color:#1a237e; margin-bottom: 8px;">✱ Recuperaciones</h3>
+        <p style="font-size:13px; color:#666; margin-bottom:12px; line-height:1.4;">
+            Marcar y cobrar clases por recuperar. Decidir si suman al saldo o se cobran aparte.
+        </p>
+        <a href="#ayuda-recuperaciones" class="btn btn-secondary btn-sm">Ver manual ↓</a>
+    </div>
+
+    <div class="card-box" style="padding: 18px; border-top: 4px solid #00838f;">
+        <h3 style="font-size:16px; color:#1a237e; margin-bottom: 8px;">🖨️ Hoja de Recaudación</h3>
+        <p style="font-size:13px; color:#666; margin-bottom:12px; line-height:1.4;">
+            Hoja imprimible por día y curso, lista para que el responsable cobre y firme la asistencia.
+        </p>
+        <a href="#ayuda-recaudacion" class="btn btn-secondary btn-sm">Ver manual ↓</a>
+    </div>
+
+    <div class="card-box" style="padding: 18px; border-top: 4px solid #00897b;">
+        <h3 style="font-size:16px; color:#1a237e; margin-bottom: 8px;">➕ Adicional</h3>
+        <p style="font-size:13px; color:#666; margin-bottom:12px; line-height:1.4;">
+            Certificados, examen supletorio y camisas extra para estudiantes internos o personas externas.
+        </p>
+        <a href="#ayuda-adicional" class="btn btn-secondary btn-sm">Ver manual ↓</a>
+    </div>
+
+    <div class="card-box" style="padding: 18px; border-top: 4px solid #FFD700;">
+        <h3 style="font-size:16px; color:#1a237e; margin-bottom: 8px;">🧾 Comprobantes</h3>
+        <p style="font-size:13px; color:#666; margin-bottom:12px; line-height:1.4;">
+            Registro rápido de ventas por asesora con clasificación por Central 1, 2, IA o Seguimiento.
         </p>
         <a href="#ayuda-comprobantes" class="btn btn-secondary btn-sm">Ver manual ↓</a>
+    </div>
+
+    <div class="card-box" style="padding: 18px; border-top: 4px solid #c62828;">
+        <h3 style="font-size:16px; color:#1a237e; margin-bottom: 8px;">🔔 Alertas y Dashboard</h3>
+        <p style="font-size:13px; color:#666; margin-bottom:12px; line-height:1.4;">
+            Alertas de Módulo 1 impago con WhatsApp y dashboard administrativo con KPIs e histórico.
+        </p>
+        <a href="#ayuda-alertas" class="btn btn-secondary btn-sm">Ver manual ↓</a>
     </div>
 
 </div>
 
 {# ── Contenido Detallado ────────────────────── #}
 
+{# ─────────────── MATRÍCULAS ─────────────── #}
 <div id="ayuda-matriculas" class="card-box" style="padding: 24px; margin-bottom: 24px;">
     <h3 style="font-size:18px; color:#1a237e; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
         🎓 Gestión de Matrículas
     </h3>
     <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
-        <li><strong>Nuevo estudiante:</strong> Ve a Inicio > Selecciona Presencial/Online > Clic en "Nueva matrícula".
-            Ingresa la cédula; si el sistema lo reconoce, autocompletará sus datos.</li>
-        <li><strong>Modalidad Online:</strong> Actualmente, la matrícula online por sistema está pausada. Los
-            estudiantes online se registran usando los formularios de Google asignados.</li>
-        <li><strong>Jornadas:</strong> Para que un curso aparezca en el registro, debe tener jornadas activas creadas
-            por el Administrador.</li>
+        <li><strong>Nuevo estudiante:</strong> Inicio → selecciona Presencial u Online → "Nueva matrícula".
+            Ingresa la cédula; si ya existe en el sistema, autocompleta apellidos, nombres, celular y demás.</li>
+        <li><strong>Tipo de matrícula:</strong> al registrar debes elegir uno de los tres tipos:
+            <ul style="margin-top:4px;">
+                <li><strong>Reserva / Abono</strong> — el estudiante reserva con un abono libre.</li>
+                <li><strong>Reserva + Módulo 1</strong> — el primer pago cubre la reserva y el módulo 1 juntos.</li>
+                <li><strong>Programa Completo</strong> — paga todo el curso de una sola vez.</li>
+            </ul>
+        </li>
+        <li><strong>Descuento:</strong> en el formulario aparece junto al valor del curso. El "Valor a pagar (con descuento)" se
+            recalcula en vivo. Saldo, barras de progreso y reportes usan siempre el <strong>valor neto</strong> (valor curso − descuento).
+            El descuento no puede ser negativo ni mayor al valor del curso.</li>
+        <li><strong>Modalidad Online:</strong> la matrícula online por sistema está pausada. Los estudiantes online
+            se registran usando los formularios de Google asignados.</li>
+        <li><strong>Jornadas:</strong> para que un curso aparezca en el registro debe tener jornadas activas creadas por el
+            Administrador (Cursos → Jornadas). La fecha de inicio de jornada se usa en muchos reportes y en la lógica de alertas.</li>
+        <li><strong>Celular duplicado:</strong> si el número ya pertenece a otra cédula, el sistema lo rechaza con un aviso claro.
+            Si es un familiar, registra otro número de contacto.</li>
+        <li><strong>Editar / eliminar:</strong> desde la lista de matrículas. La lista exporta a Excel y PDF e incluye
+            la columna "Inicio jornada".</li>
     </ul>
 </div>
 
+{# ─────────────── PAGOS Y ABONOS ─────────────── #}
 <div id="ayuda-pagos" class="card-box" style="padding: 24px; margin-bottom: 24px;">
     <h3 style="font-size:18px; color:#2e7d32; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
         💵 Registro de Pagos y Abonos
     </h3>
     <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
-        <li><strong>Dónde registrar:</strong> Ve al menú de "Pagos", busca al estudiante matriculado y haz clic en "Ver
-            Abonos".</li>
-        <li><strong>Tipos de Pago:</strong> Puedes cobrar en efectivo, tarjeta o transferencia. Si eliges transferencia,
-            el sistema te exigirá registrar el banco usado.</li>
-        <li><strong>Recibos:</strong> Si dejas el campo "Nº de recibo" en blanco, el sistema generará uno
-            automáticamente (Ej: REC-0025).</li>
+        <li><strong>Dónde registrar:</strong> menú "Pagos" → busca al estudiante matriculado → "Ver Abonos".</li>
+        <li><strong>Tipos de pago</strong> (selector en el modal "Registrar Pago"):
+            <ul style="margin-top:4px;">
+                <li><strong>Abono</strong> — pago parcial libre. Es el comportamiento clásico, default.</li>
+                <li><strong>Pago Completo</strong> — paga todo el saldo restante de una sola vez.</li>
+                <li><strong>Por Módulo</strong> — al elegirlo aparece un selector de módulo (1, 2, 3...) según la cantidad
+                    configurada en el curso.</li>
+                <li><strong>Clase de Recuperación</strong> — además del módulo, pregunta "¿Suma al pago del curso?".
+                    Si dices Sí, reduce el saldo. Si dices No, queda registrado como ingreso aparte y NO afecta el saldo
+                    (estos pagos aparecen con fondo amarillito en el historial).</li>
+            </ul>
+        </li>
+        <li><strong>Forma de pago:</strong> efectivo, tarjeta o transferencia. Si eliges transferencia, el sistema te
+            exige registrar el banco usado.</li>
+        <li><strong>Recibos:</strong> si dejas el campo "Nº de recibo" en blanco, el sistema genera uno automáticamente
+            (ej. <code>REC-0025</code>). Cada abono tiene su recibo imprimible.</li>
+        <li><strong>Historial de pagos:</strong> incluye columnas <em>Tipo</em> y <em>Módulo</em>. Los cobros aparte
+            (que no afectan saldo) se ven con fondo amarillo para que no se confundan con abonos normales.</li>
+        <li><strong>Lista general de Pagos (<code>/pagos/</code>):</strong> incluye Jornada, Día (inicio de jornada) y
+            Asistencia (línea en blanco para firma a mano). Hay botones <strong>📊 Excel</strong>, <strong>📄 PDF</strong>
+            (A3 horizontal, listo para imprimir) y <strong>🖨️ Imprimir</strong>.</li>
+        <li><strong>Retiro voluntario:</strong> desde el detalle de la matrícula puedes activar Retiro. Las matrículas
+            en retiro dejan de generar alertas de pago.</li>
     </ul>
 </div>
 
+{# ─────────────── PAGOS POR MÓDULO ─────────────── #}
+<div id="ayuda-por-modulo" class="card-box" style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="font-size:18px; color:#283593; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+        📊 Pagos por Módulo (control semanal)
+    </h3>
+    <p style="font-size:14px; color:#555; line-height:1.6; margin-bottom:10px;">
+        Es la matriz <em>estudiantes × módulos</em> que sirve para llevar el avance del curso semana a semana.
+        Acceso: menú "Pagos" → botón <strong>📊 Por Módulo</strong>, o directamente <code>/pagos/por-modulo/</code>.
+    </p>
+    <h4 style="font-size:14px; color:#1a237e; margin: 14px 0 6px;">Cómo se ven los módulos en la matriz</h4>
+    <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
+        <li><span style="background:#e8f5e9; color:#2e7d32; font-weight:700; padding:2px 8px; border-radius:6px;">✓ Pagado</span>
+            — el módulo recibió suficiente dinero (directo o por derrame de la reserva).</li>
+        <li><span style="background:#e8f5e9; color:#2e7d32; font-weight:700; padding:2px 8px; border-radius:6px;">✓ Programa Completo</span>
+            — el estudiante de tipo "Programa Completo" pagó todo el curso de una sola vez (saldo $0). Todos sus módulos se
+            marcan en verde aunque no haya un abono asignado a cada módulo.</li>
+        <li><span style="background:#ffebee; color:#c62828; font-weight:700; padding:2px 8px; border-radius:6px;">○ Sin pagar</span>
+            — al módulo no le ha llegado el monto completo. Si hay un abono parcial, se muestra una nota en gris debajo
+            ("abonó $20,00 · 09/05/2026") para no perder la trazabilidad del dinero que sí entró.</li>
+    </ul>
+    <h4 style="font-size:14px; color:#1a237e; margin: 14px 0 6px;">Cómo se reparte la reserva (regla del "río con derrame")</h4>
+    <p style="font-size:14px; color:#555; line-height:1.6;">
+        Los pagos sin módulo (reserva, abonos libres, pago completo) entran a un "pool libre". El sistema recorre los módulos
+        del 1 al N: cada módulo se llena hasta su valor esperado y el sobrante se <strong>derrama</strong> al siguiente.
+        Ejemplo: curso de $80 con 2 módulos de $40. El estudiante paga $20 de reserva + $60 al módulo 1 → ambos módulos quedan
+        ✓ Pagado. Si la fecha del abono se repartió entre dos módulos, los dos muestran su fecha.
+    </p>
+    <h4 style="font-size:14px; color:#1a237e; margin: 14px 0 6px;">Filtros disponibles</h4>
+    <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
+        <li><strong>Curso</strong> (obligatorio), <strong>Modalidad</strong>, <strong>Ciudad</strong>.</li>
+        <li><strong>Tipo de matrícula:</strong> Reserva/Abono · Reserva + Módulo 1 · Programa Completo.</li>
+        <li><strong>Estado por Módulo:</strong> permite filtrar por módulo N en estado Pagado o Pendiente. Útil para detectar
+            morosos del primer módulo de un solo vistazo (Reserva/Abono + Módulo 1 Pendiente).</li>
+    </ul>
+    <h4 style="font-size:14px; color:#1a237e; margin: 14px 0 6px;">Exportaciones</h4>
+    <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
+        <li><strong>📊 Excel</strong> y <strong>📄 PDF</strong> respetan los filtros aplicados. El PDF imprime en A3 horizontal con la columna
+            de Asistencia subrayada.</li>
+        <li><strong>🖨️ Imprimir</strong> usa el navegador con estilos especiales: oculta menús y deja la tabla limpia para firmar.</li>
+        <li>Excel y PDF mantienen los <em>3 estados</em> internos (Pagado / Parcial / Pendiente) para la contabilidad. La pantalla
+            colapsa "Parcial" a "Sin pagar + nota" para que no haya dudas visuales.</li>
+    </ul>
+</div>
+
+{# ─────────────── RECUPERACIONES ─────────────── #}
+<div id="ayuda-recuperaciones" class="card-box" style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="font-size:18px; color:#ef6c00; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+        ✱ Clases en Recuperación
+    </h3>
+    <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
+        <li><strong>Cómo marcar una clase a recuperación:</strong> en la página de pagos del estudiante
+            (<code>/matricula/&lt;pk&gt;/abonos/</code>) hay un botón <strong>✱ Marcar clase a recuperación</strong>.
+            Llena módulo + fecha de la falta + observaciones. Queda registrada con el saldo del momento (saldo arrastrado).</li>
+        <li><strong>Lista central:</strong> menú "Pagos" → botón <strong>✱ Recuperaciones</strong> o <code>/recuperaciones/</code>.
+            Tabla con estudiante, curso, módulo, fecha de la falta, saldo arrastrado, estado y asistencia (línea para firma).</li>
+        <li><strong>Filtros:</strong> pendientes / pagadas, búsqueda por cédula o nombre, por curso.</li>
+        <li><strong>Cobrar la recuperación:</strong> botón <strong>Cobrar</strong> → monto sugerido $25 (modificable). Decide si:
+            <ul style="margin-top:4px;">
+                <li><strong>Suma al saldo</strong> — el monto se cuenta como pago del curso y reduce el saldo.</li>
+                <li><strong>Aparte</strong> — se registra como ingreso pero NO afecta el saldo. Aparece amarillo en el historial.</li>
+            </ul>
+        </li>
+        <li><strong>Exportaciones:</strong> Excel y PDF con la columna Asistencia (vacía, lista para firmar).</li>
+    </ul>
+</div>
+
+{# ─────────────── HOJA DE RECAUDACIÓN ─────────────── #}
+<div id="ayuda-recaudacion" class="card-box" style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="font-size:18px; color:#00838f; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+        🖨️ Hoja de Recaudación imprimible
+    </h3>
+    <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
+        <li><strong>Acceso:</strong> menú "Pagos" → botón <strong>🖨️ Hoja Recaudación</strong>, o directamente
+            <code>/pagos/hoja-recaudacion/</code>. Replica el formato del PDF físico que se usa en aula.</li>
+        <li><strong>Filtros:</strong> fecha (obligatoria) + ciudad + curso. Si no eliges curso, el sistema genera
+            <strong>una hoja por cada curso</strong> que tenga clases ese día.</li>
+        <li><strong>Encabezado:</strong> día de la semana, fecha, ciudad y responsable.</li>
+        <li><strong>Tabla:</strong> nombre del estudiante, módulo, monto a recaudar, recaudado, forma de pago, banco,
+            asistencia y recuperación.</li>
+        <li><strong>Totales abajo:</strong> a recaudar / efectivo / transferencia / total recaudado.</li>
+        <li><strong>"🖨️ Imprimir todas":</strong> usa CSS con saltos de página automáticos — sale una hoja por cada curso del día.</li>
+        <li><strong>Excel y PDF:</strong> también disponibles, con la misma columna "Inicio jornada" y "Asistencia"
+            que el resto de reportes.</li>
+    </ul>
+</div>
+
+{# ─────────────── ADICIONAL ─────────────── #}
+<div id="ayuda-adicional" class="card-box" style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="font-size:18px; color:#00897b; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+        ➕ Adicional (Certificados, Examen Supletorio, Camisas)
+    </h3>
+    <p style="font-size:14px; color:#555; line-height:1.6; margin-bottom:10px;">
+        Sección para registrar servicios y productos extra que no son parte del curso. Se accede desde la tarjeta
+        <strong>➕ Adicional</strong> de la pantalla de Inicio.
+    </p>
+    <h4 style="font-size:14px; color:#1a237e; margin: 14px 0 6px;">Tipos de Adicional soportados</h4>
+    <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
+        <li><strong>Certificado de matrícula</strong> — pide curso y modalidad.</li>
+        <li><strong>Certificado de asistencia</strong> — pide curso y modalidad.</li>
+        <li><strong>Certificado antiguo</strong> — pide curso y modalidad.</li>
+        <li><strong>Examen supletorio</strong> — pide curso, modalidad y módulo.</li>
+        <li><strong>Camisa</strong> — pide talla (S, M, L, XL, o "Ninguna de las anteriores"). La academia solo cubre hasta XL.</li>
+    </ul>
+    <p style="font-size:13px; color:#666; line-height:1.5; margin: 8px 0 14px; font-style:italic;">
+        El valor lo defines tú en cada registro — no hay precios fijos.
+    </p>
+    <h4 style="font-size:14px; color:#1a237e; margin: 14px 0 6px;">Estudiantes internos vs personas externas</h4>
+    <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
+        <li><strong>＋ Agregar Adicional</strong> — para estudiantes ya matriculados. Escribe la cédula y se autocompletan
+            apellidos, nombres y celular.</li>
+        <li><strong>＋ Agregar Persona Externa</strong> — para alguien que no está matriculado. Si la cédula no existe
+            en el directorio, te ofrece un botón para registrarla. Solo cédula, apellidos y nombres son obligatorios;
+            correo, celular, ciudad y observaciones son opcionales.</li>
+        <li><strong>📇 Lista de Personas Externas</strong> — directorio de externos. No se puede eliminar a una persona
+            externa que tenga Adicionales registrados (hay que eliminar los Adicionales primero).</li>
+        <li><strong>≡ Lista de Adicionales</strong> — todos los registros con filtros por tipo, origen (interno/externo),
+            rango de fechas y búsqueda libre por cédula, nombre o curso.</li>
+    </ul>
+    <h4 style="font-size:14px; color:#1a237e; margin: 14px 0 6px;">Examen supletorio rápido (atajo)</h4>
+    <p style="font-size:14px; color:#555; line-height:1.6;">
+        Dentro del detalle de pagos de cualquier matrícula (<code>/matricula/&lt;pk&gt;/abonos/</code>) hay un botón
+        <strong>📝 Examen supletorio</strong>. Abre un mini-formulario que pre-llena estudiante, curso, modalidad y
+        matrícula de origen — solo te pregunta módulo, fecha, valor, método de pago y observaciones. El registro queda
+        en la sección Adicional y aparece también en una tarjeta azul dentro del detalle de la matrícula original.
+    </p>
+</div>
+
+{# ─────────────── COMPROBANTES ─────────────── #}
 <div id="ayuda-comprobantes" class="card-box" style="padding: 24px; margin-bottom: 24px;">
     <h3 style="font-size:18px; color:#856404; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
         🧾 Comprobantes de Venta (Asesoras)
     </h3>
     <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
-        <li><strong>¿Para qué sirve?</strong> Es un registro rápido de una venta efectuada, no inscribe al alumno
-            formalmente, pero permite llevar el control del dinero y la facturación.</li>
-        <li><strong>Registro de Vendedora:</strong> Al registrar un comprobante, el sistema asignará tu usuario
-            automáticamente como la persona que hizo la venta.</li>
-        <li><strong>Tipo de registro:</strong> Ahora debes indicar en el formulario si la venta proviene de Central 1,
-            Central 2, Central IA o Seguimiento.</li>
-        <li><strong>Subir foto:</strong> Si tienes la foto del recibo físico o de la transferencia, pega el enlace (de
-            Drive, Imgur, etc.) en el campo "Link del comprobante".</li>
+        <li><strong>¿Para qué sirve?</strong> Es un registro rápido de una venta efectuada. <em>No</em> inscribe al alumno
+            formalmente, pero permite llevar el control del dinero, la facturación y el ranking de asesoras.</li>
+        <li><strong>Registro de vendedora:</strong> al registrar un comprobante, el sistema asigna automáticamente tu
+            usuario como la persona que hizo la venta.</li>
+        <li><strong>Tipo de registro:</strong> en el formulario debes indicar si la venta proviene de
+            <strong>Central 1</strong>, <strong>Central 2</strong>, <strong>Central IA</strong> o <strong>Seguimiento</strong>.</li>
+        <li><strong>Subir foto:</strong> si tienes la foto del recibo físico o de la transferencia, pega el enlace
+            (Drive, Imgur, etc.) en el campo "Link del comprobante".</li>
+        <li><strong>Vistas disponibles:</strong>
+            <ul style="margin-top:4px;">
+                <li><strong>Registrar</strong> — formulario rápido.</li>
+                <li><strong>Lista</strong> — todos los comprobantes con filtros.</li>
+                <li><strong>Totales</strong> — ranking y totales por asesora y por central.</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+
+{# ─────────────── ALERTAS Y DASHBOARD ─────────────── #}
+<div id="ayuda-alertas" class="card-box" style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="font-size:18px; color:#c62828; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+        🔔 Alertas de pago y Dashboard administrativo
+    </h3>
+    <h4 style="font-size:14px; color:#1a237e; margin: 4px 0 6px;">Alertas de Módulo 1 impago</h4>
+    <p style="font-size:14px; color:#555; line-height:1.6; margin-bottom:8px;">
+        Aparecen en el dashboard de Bienvenida para administradores y asesores. Las primeras 3 se muestran expandidas
+        y el resto bajo un bloque plegable para no saturar la pantalla.
+    </p>
+    <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
+        <li><strong>Cuándo se dispara una alerta:</strong> tipo de matrícula = Reserva/Abono o Reserva + Módulo 1, jornada
+            ya iniciada (fecha_inicio anterior a hoy), módulo 1 sigue Pendiente o Parcial, y la matrícula no está en Retiro.</li>
+        <li><strong>💬 WhatsApp:</strong> abre <code>wa.me</code> con el celular normalizado a formato internacional
+            (<code>09xxxxxxxx</code> → <code>593xxxxxxxxx</code>) y un mensaje predefinido con curso, fecha de inicio y monto.</li>
+        <li><strong>👁 Detalle:</strong> lleva a la página de abonos del estudiante.</li>
+        <li><strong>✓ Ya revisado:</strong> oculta la alerta hasta el día siguiente. Si mañana sigue impago, vuelve a aparecer.</li>
+    </ul>
+    <h4 style="font-size:14px; color:#1a237e; margin: 14px 0 6px;">Dashboard administrativo (<code>/admin-panel/</code>)</h4>
+    <ul style="font-size:14px; color:#555; line-height:1.6; padding-left: 20px;">
+        <li><strong>KPIs del mes:</strong> Ingresos (Abonos + Ventas + Adicionales), Egresos, Retiros, Clases de Recuperación
+            y "+ $ Adicionales del mes" (con variación porcentual contra el mes anterior).</li>
+        <li><strong>Gráfico de barras 6 meses:</strong> Verde (Ingresos), Rojo (Egresos), Gris (Retiros) y Naranja
+            (Recuperaciones).</li>
+        <li><strong>🎯 Tipos de Pago — mes seleccionado:</strong> gráfico circular + barras de progreso para Abono,
+            Pago Completo, Por Módulo y Clase de Recuperación.</li>
+        <li><strong>📊 Distribución por mes:</strong> 6 mini gráficos circulares mostrando cómo evoluciona la mezcla
+            de tipos de pago.</li>
+        <li><strong>Desglose por tipo de Adicional:</strong> barras de progreso por cada tipo (certificados, supletorios, camisas).</li>
+        <li><strong>Egresos:</strong> registro, edición y eliminación. Exportable a CSV junto con el reporte mensual completo.</li>
+    </ul>
+</div>
+
+{# ─────────────── NOVEDADES v2 ─────────────── #}
+<div id="ayuda-novedades" class="card-box" style="padding: 24px; margin-bottom: 24px; background:#f5f7ff;">
+    <h3 style="font-size:18px; color:#1a237e; margin-bottom: 12px; border-bottom: 1px solid #d6dbf0; padding-bottom: 8px;">
+        🆕 Novedades de la versión 2.x
+    </h3>
+    <ul style="font-size:13px; color:#555; line-height:1.6; padding-left: 20px;">
+        <li><strong>v2.4 (mayo 2026):</strong> la matriz de Pagos por Módulo ahora muestra 2 estados visuales (Pagado / Sin pagar),
+            la reserva se distribuye correctamente por derrame al primer módulo, y los exports de Excel y PDF respetan el
+            filtro de Estado por Módulo.</li>
+        <li><strong>v2.3:</strong> sección Adicional completa (certificados, supletorios, camisas) para internos y externos.
+            Atajo de Examen Supletorio desde la matrícula. KPI nuevo en el dashboard.</li>
+        <li><strong>v2.2:</strong> columnas Jornada / Día / Asistencia en Pagos, Por Módulo y Recuperaciones, con línea de
+            firma. PDF en A3 horizontal. Dashboard con tipos de pago y distribución por mes.</li>
+        <li><strong>v2.1:</strong> alertas de pago de Módulo 1 con WhatsApp en la Bienvenida. Filtros nuevos en Por Módulo.
+            Exportaciones Excel/PDF en todas las vistas de pagos.</li>
+        <li><strong>v2:</strong> número de módulos configurable por curso, descuento en matrícula, tipos de pago
+            (Abono / Completo / Por Módulo / Recuperación), Hoja de Recaudación imprimible y validación de celular duplicado.</li>
     </ul>
 </div>
 
