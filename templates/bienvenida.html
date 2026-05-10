@@ -179,11 +179,10 @@
         color: #856404;
     }
 </style>
-
 <!-- HEADER -->
 <div class="dashboard-header">
     <h2 class="page-title" style="font-size: 30px;">
-        Hola, {{ usuario.first_name|default:usuario.username }}
+        <span id="saludo-dinamico">Hola</span>, {{ usuario.first_name|default:usuario.username }}
     </h2>
 
     <p class="page-subtitle">
@@ -555,7 +554,6 @@
         </div>
     </a>
     {% endif %}
-
 </div>
 
 {% if not puede_gestionar_matriculas and not es_admin %}
@@ -563,5 +561,26 @@
     ⚠ Tu usuario no tiene rol asignado. Solicita acceso a un administrador.
 </div>
 {% endif %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Obtenemos la hora actual del navegador del usuario (0 - 23)
+        const horaActual = new Date().getHours();
+        const elementoSaludo = document.getElementById("saludo-dinamico");
+        
+        let saludo = "Hola"; // Saludo por defecto
+        
+        if (horaActual >= 5 && horaActual < 12) {
+            saludo = "Buenos días ☀️";
+        } else if (horaActual >= 12 && horaActual < 19) {
+            saludo = "Buenas tardes 🌤️";
+        } else {
+            saludo = "Buenas noches 🌙";
+        }
+        
+        // Reemplazamos el texto en la pantalla
+        elementoSaludo.innerText = saludo;
+    });
+</script>
 
 {% endblock %}
