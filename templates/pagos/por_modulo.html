@@ -426,13 +426,23 @@
                 </td>
                 {% for mod in row.modulos_data %}
                 {% comment %}
-                Visual binario en la matriz:
+                Visual en la matriz:
+                  - Programa Completo con saldo $0 → todos los módulos se muestran
+                    como "Programa Completo" en verde, porque el estudiante pagó
+                    todo de una sola vez (no por módulos individuales).
                   - Pagado (verde) → el módulo recibió al menos un pago directo,
                     sin importar si cubre el valor esperado o solo parte.
                   - Sin pagar (rojo) → no se ha registrado ningún pago al módulo.
                 Los estados internos siguen siendo 3 (Pagado/Parcial/Pendiente)
-                para reportes y filtros, pero el render colapsa Parcial a Pagado.
+                para reportes y filtros, pero el render colapsa los casos.
                 {% endcomment %}
+                {% if row.tipo_matricula_codigo == 'programa_completo' and row.matricula.saldo <= 0 %}
+                <td style="padding:8px; text-align:center; background:#e8f5e9;">
+                    <div style="color:#2e7d32; font-weight:700; font-size:11px; line-height:1.2;">
+                        ✓ Programa<br>Completo
+                    </div>
+                </td>
+                {% else %}
                 <td style="padding:8px; text-align:center;
                     {% if mod.estado == 'Pendiente' %}background:#ffebee;
                     {% else %}background:#e8f5e9;{% endif %}">
@@ -445,6 +455,7 @@
                         {% endif %}
                     {% endif %}
                 </td>
+                {% endif %}
                 {% endfor %}
                 <td style="padding:8px; text-align:center;">
                     <span class="asistencia-cell"></span>
@@ -470,12 +481,16 @@
 <div style="margin-top:14px; font-size:12px; color:#666;">
     <strong>Leyenda:</strong>
     <span style="background:#e8f5e9; padding:2px 8px; border-radius:6px; color:#2e7d32; font-weight:600;">✓ Pagado</span> ·
+    <span style="background:#e8f5e9; padding:2px 8px; border-radius:6px; color:#2e7d32; font-weight:600;">✓ Programa Completo</span> ·
     <span style="background:#ffebee; padding:2px 8px; border-radius:6px; color:#c62828; font-weight:600;">○ Sin pagar</span>
     <br><br>
     <em>
         Valor sugerido por módulo = Valor neto del curso / N° de módulos.
         Cada módulo se paga de forma independiente: solo cuentan en la matriz
         los abonos asignados explícitamente a un módulo (tipo "Por Módulo").
+        Cuando el tipo de matrícula es <strong>Programa Completo</strong> y el saldo
+        está en $0, los módulos se marcan como pagados aunque no haya un abono
+        individual por módulo, porque el estudiante canceló el curso de una sola vez.
         La reserva y los abonos libres no aparecen aquí pero sí en el saldo
         total y en el historial de pagos del estudiante.
     </em>
