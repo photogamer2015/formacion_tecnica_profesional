@@ -577,10 +577,15 @@ class Matricula(models.Model):
         aplicado = {n: Decimal('0.00') for n in range(1, n_mod + 1)}
         fecha_ultimo = {n: None for n in range(1, n_mod + 1)}
 
-        # Solo abonos por_modulo con numero_modulo válido entran a la matriz
+        # Solo abonos directos al módulo entran a la matriz.
+        # Además de los pagos explícitos 'por_modulo', incluimos
+        # las recuperaciones que se registraron con
+        # `cuenta_para_saldo=True` y `numero_modulo` asignado,
+        # porque deben afectar el estado del módulo cuando
+        # se suman al saldo del curso.
         for a in self.abonos.filter(
             cuenta_para_saldo=True,
-            tipo_pago='por_modulo',
+            tipo_pago__in=('por_modulo', 'recuperacion'),
             numero_modulo__isnull=False,
         ).order_by('fecha', 'creado'):
             n = a.numero_modulo

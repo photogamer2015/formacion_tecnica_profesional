@@ -212,6 +212,13 @@
                 <td style="text-align:right;">
                     {% if not r.pagada %}
                     <a href="{% url 'academia:recuperacion_cobrar' r.pk %}" class="btn btn-success btn-sm">Cobrar</a>
+                    <form method="post" action="{% url 'academia:recuperacion_eliminar' r.pk %}" style="display:inline; margin:0 0 0 6px;">
+                        {% csrf_token %}
+                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                            onclick="confirmarAccion(this.closest('form'), '¿Desmarcar esta clase como recuperación? Esta acción eliminará la marca y no podrá recuperarse.', 'warning')">
+                            Desmarcar
+                        </button>
+                    </form>
                     {% endif %}
                 </td>
             </tr>

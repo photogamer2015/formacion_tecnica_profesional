@@ -29,7 +29,7 @@
     <div class="form-grid">
         <div>
             <label class="form-label" for="{{ est_form.cedula.id_for_label }}">
-                Cédula *
+                Cédula/ RUC *
                 <span id="cedula-status" style="margin-left:8px; font-weight:400; font-size:11px;"></span>
             </label>
             {{ est_form.cedula }}{{ est_form.cedula.errors }}
@@ -457,6 +457,10 @@
     .cedula-checking {
         color: #888;
     }
+
+    /* Estilos para campos requeridos dinámicos */
+    .field-required { box-shadow: 0 0 0 2px rgba(198,40,40,0.06); border-color: #c62828 !important; }
+    .req-star { color: #c62828; margin-left:6px; font-weight:700; }
 </style>
 {% endblock %}
 
@@ -1003,17 +1007,81 @@
         }
         filtrarCursosVisuales();
 
-        // ── Toggle visual de "datos de factura" ───────────────────────────
+        // ── Toggle visual de "datos de factura" y gestión de requisitos ───
         const facturaSelect = obtenerElementoCampo('factura_realizada');
         const datosFacturaWrap = document.getElementById('datos-factura-wrap');
+
+        const INVOICE_FIELDS = [
+            { name: 'fact_nombres', label: 'Nombres (factura)' },
+            { name: 'fact_apellidos', label: 'Apellidos (factura)' },
+            { name: 'fact_cedula', label: 'Cédula / RUC (factura)' },
+            { name: 'fact_correo', label: 'Correo (factura)' },
+        ];
+
+        function isFacturaSi() {
+            const checked = document.querySelector('[name="factura_realizada"]:checked');
+            if (checked) return checked.value === 'si';
+            if (facturaSelect) return facturaSelect.value === 'si';
+            return false;
+        }
+
+        function setInvoiceRequired(required) {
+            INVOICE_FIELDS.forEach(f => {
+                const el = obtenerElementoCampo(f.name);
+                if (!el) return;
+                const lbl = el.id ? document.querySelector(`label[for="${el.id}"]`) : null;
+                if (required) {
+                    el.setAttribute('required', 'required');
+                    el.classList.add('field-required');
+                    if (lbl && !lbl.querySelector('.req-star')) {
+                        const span = document.createElement('span');
+                        span.className = 'req-star';
+                        span.textContent = ' *';
+                        lbl.appendChild(span);
+                    }
+                } else {
+                    el.removeAttribute('required');
+                    el.classList.remove('field-required');
+                    el.style.borderColor = '';
+                    if (lbl) {
+                        const star = lbl.querySelector('.req-star');
+                        if (star) star.remove();
+                    }
+                }
+            });
+
+            if (required) {
+                INVOICE_FIELDS.forEach(f => {
+                    if (!CAMPOS_REQUERIDOS.find(c => c.name === f.name)) {
+                        CAMPOS_REQUERIDOS.push({ name: f.name, label: f.label });
+                    }
+                });
+            } else {
+                for (let i = CAMPOS_REQUERIDOS.length - 1; i >= 0; i--) {
+                    if (INVOICE_FIELDS.find(x => x.name === CAMPOS_REQUERIDOS[i].name)) {
+                        CAMPOS_REQUERIDOS.splice(i, 1);
+                    }
+                }
+            }
+        }
+
         function toggleDatosFactura() {
-            if (!facturaSelect || !datosFacturaWrap) return;
-            datosFacturaWrap.style.opacity = facturaSelect.value === 'si' ? '1' : '0.65';
+            if (!datosFacturaWrap) return;
+            const si = isFacturaSi();
+            datosFacturaWrap.style.opacity = si ? '1' : '0.65';
+            setInvoiceRequired(si);
+            validarCamposPrincipales();
         }
-        if (facturaSelect) {
+
+        // Escuchar cambios (soporta radios o selects)
+        const facturaEls = document.querySelectorAll('[name="factura_realizada"]');
+        if (facturaEls && facturaEls.length) {
+            facturaEls.forEach(e => e.addEventListener('change', toggleDatosFactura));
+        } else if (facturaSelect) {
             facturaSelect.addEventListener('change', toggleDatosFactura);
-            toggleDatosFactura();
         }
+        // Inicializar estado
+        toggleDatosFactura();
 
         // ── Validar al cargar ─────────────────────────────────────────────
         validarCamposPrincipales();
