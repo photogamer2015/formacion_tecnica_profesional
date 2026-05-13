@@ -103,6 +103,18 @@ class JornadaCursoForm(forms.ModelForm):
 
 
 class EstudianteForm(forms.ModelForm):
+    # Campo extra (no del modelo): permite al usuario confirmar que quiere
+    # usar un celular que ya pertenece a otro estudiante (familia, padres
+    # que registran varios hijos con el mismo número, etc.).
+    permitir_celular_duplicado = forms.BooleanField(
+        required=False,
+        label='Confirmo: número compartido (familia, hijos del mismo padre, etc.)',
+        widget=forms.CheckboxInput(attrs={
+            'id': 'id_est-permitir_celular_duplicado',
+            'class': 'form-checkbox',
+        }),
+    )
+
     class Meta:
         model = Estudiante
         fields = [
@@ -136,10 +148,21 @@ class EstudianteForm(forms.ModelForm):
         Validación: si el celular ya pertenece a OTRO estudiante con cédula
         diferente, devolvemos un error claro indicando a quién pertenece,
         para evitar duplicados accidentales por confusión de números.
+
+        El usuario puede marcar el checkbox "permitir_celular_duplicado"
+        para confirmar que es intencional (familia, hijos, etc.) y saltarse
+        esta validación.
         """
         celular = (self.cleaned_data.get('celular') or '').strip()
         if not celular:
             return celular  # opcional, se permite vacío
+
+        # Si el usuario marcó el checkbox de "número compartido", se permite
+        # el duplicado sin más preguntas. Leemos del POST crudo porque el
+        # orden de procesamiento de los campos puede variar.
+        permitir = self.data.get(self.add_prefix('permitir_celular_duplicado'))
+        if permitir in ('on', 'true', 'True', '1', True):
+            return celular
 
         cedula = (self.cleaned_data.get('cedula') or '').strip()
         qs = Estudiante.objects.filter(celular=celular)
@@ -154,8 +177,9 @@ class EstudianteForm(forms.ModelForm):
         if otro:
             raise forms.ValidationError(
                 f'⚠ Este número ya está registrado a {otro.nombre_completo} '
-                f'(cédula {otro.cedula}). Si es la misma persona usa esa cédula; '
-                f'si es un número compartido (familiar), usa otro número de contacto.'
+                f'(cédula {otro.cedula}). Si es un número compartido (familia, '
+                f'hijos, etc.) marca la casilla "Confirmo: número compartido" '
+                f'que aparece junto al campo y vuelve a guardar.'
             )
         return celular
 
@@ -269,6 +293,25 @@ class MatriculaForm(forms.ModelForm):
         self.fields['tipo_matricula'].required = True
         self.fields['tipo_registro'].required = True
         self.fields['factura_realizada'].required = True
+
+        # Tipo de matrícula: forzar que el usuario elija manualmente.
+        # El modelo tiene default='programa_completo' pero en el formulario
+        # queremos que aparezca vacío para que se elija conscientemente.
+        self.fields['tipo_matricula'].initial = ''
+        if hasattr(self.fields['tipo_matricula'], 'choices'):
+            choices = list(self.fields['tipo_matricula'].choices)
+            # Si la primera opción no es vacía, anteponemos una.
+            if not choices or choices[0][0] != '':
+                self.fields['tipo_matricula'].choices = (
+                    [('', '— Selecciona el tipo de matrícula —')] + choices
+                )
+        # Si es una matrícula nueva (sin pk), nos aseguramos de que no
+        # quede el default del modelo en el campo.
+        if not (self.instance and self.instance.pk):
+            if 'tipo_matricula' in self.initial:
+                self.initial['tipo_matricula'] = ''
+            self.fields['tipo_matricula'].widget.attrs.pop('value', None)
+
         # Descuento es opcional (default 0)
         self.fields['descuento'].required = False
         self.fields['descuento'].label = 'Descuento (USD)'

@@ -51,8 +51,32 @@
             {{ est_form.correo }}{{ est_form.correo.errors }}
         </div>
         <div>
-            <label class="form-label" for="{{ est_form.celular.id_for_label }}">Celular</label>
+            <label class="form-label" for="{{ est_form.celular.id_for_label }}">
+                Celular
+                <span id="celular-status" style="margin-left:8px; font-weight:400; font-size:11px;"></span>
+            </label>
             {{ est_form.celular }}{{ est_form.celular.errors }}
+            <!-- Panel de estudiantes que comparten el celular (informativo, no bloquea) -->
+            <div id="celular-compartido-panel" style="display:none; margin-top:8px; padding:10px 12px; background:#FFF8E1; border-left:4px solid #F9A825; border-radius:4px;">
+                <div style="font-size:12px; font-weight:600; color:#6D4C41; margin-bottom:6px;">
+                    👥 Este número ya está registrado en otros estudiantes
+                </div>
+                <div style="font-size:11px; color:#795548; margin-bottom:8px;">
+                    Puedes seguir usando el mismo número (familiares, hijos del mismo padre, etc.)
+                    o copiar los datos de uno de ellos:
+                </div>
+                <!-- Checkbox para permitir el duplicado (envía al backend) -->
+                <label style="display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:white; border:1px dashed #F9A825; border-radius:6px; margin-bottom:10px; cursor:pointer;">
+                    {{ est_form.permitir_celular_duplicado }}
+                    <span style="font-size:12px; color:#6D4C41; font-weight:600; line-height:1.35;">
+                        ✅ Sí, es un número compartido (familia, hijos del mismo padre, etc.) — permitir usar el mismo número
+                        <span style="display:block; font-weight:400; font-size:11px; color:#8D6E63; margin-top:2px;">
+                            Marca esta casilla y el sistema permitirá guardar la matrícula aunque el número ya exista en otro estudiante.
+                        </span>
+                    </span>
+                </label>
+                <div id="celular-compartido-lista" style="display:flex; flex-direction:column; gap:6px;"></div>
+            </div>
         </div>
         <div>
             <label class="form-label" for="{{ est_form.nivel_formacion.id_for_label }}">Nivel de formación</label>
@@ -171,9 +195,7 @@
         <div>
             <label class="form-label" for="{{ mat_form.valor_pagado.id_for_label }}">Valor pagado (USD)</label>
             {{ mat_form.valor_pagado }}{{ mat_form.valor_pagado.errors }}
-            {% if mat_form.valor_pagado.help_text %}
-            <small style="color: #666; display: block; margin-top: 5px;">{{ mat_form.valor_pagado.help_text }}</small>
-            {% endif %}
+            <small class="form-helptext-pagado" style="color: #666; display: {{ mat_form.valor_pagado.help_text|yesno:'block,none' }}; margin-top: 5px;">{{ mat_form.valor_pagado.help_text|default:'' }}</small>
         </div>
     </div>
 
@@ -741,6 +763,114 @@
                 cedulaTimer = setTimeout(() => buscarPorCedula(valor), 350);
             });
             if (cedulaInput.value && MODO !== 'editar') buscarPorCedula(cedulaInput.value);
+        }
+
+        // ── Aviso de celular compartido (informativo, NO bloquea) ─────────
+        const celularInput = obtenerElementoCampo('celular');
+        const celularStatus = document.getElementById('celular-status');
+        const celularPanel = document.getElementById('celular-compartido-panel');
+        const celularLista = document.getElementById('celular-compartido-lista');
+        let celularTimer = null;
+
+        function escaparHtml(texto) {
+            const div = document.createElement('div');
+            div.textContent = texto || '';
+            return div.innerHTML;
+        }
+
+        function renderEstudianteCompartido(est) {
+            const fila = document.createElement('div');
+            fila.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:white; border:1px solid #FFE0B2; border-radius:6px;';
+
+            const info = document.createElement('div');
+            info.style.cssText = 'min-width:0; flex:1;';
+            info.innerHTML = `
+                <div style="font-size:13px; font-weight:600; color:#1A237E;">
+                    ${escaparHtml(est.nombre_completo)}
+                </div>
+                <div style="font-size:11px; color:#666;">
+                    Cédula: ${escaparHtml(est.cedula)}
+                    ${est.correo ? ' · ' + escaparHtml(est.correo) : ''}
+                    ${est.ciudad ? ' · ' + escaparHtml(est.ciudad) : ''}
+                </div>
+            `;
+            fila.appendChild(info);
+
+            if (MODO !== 'editar') {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = 'Usar estos datos';
+                btn.style.cssText = 'flex:0 0 auto; padding:6px 12px; font-size:11px; font-weight:600; background:#1A237E; color:white; border:none; border-radius:6px; cursor:pointer; white-space:nowrap;';
+                btn.addEventListener('mouseenter', () => btn.style.background = '#283593');
+                btn.addEventListener('mouseleave', () => btn.style.background = '#1A237E');
+                btn.addEventListener('click', () => {
+                    if (cedulaInput) {
+                        cedulaInput.value = est.cedula;
+                        buscarPorCedula(est.cedula);
+                    }
+                    if (celularPanel) celularPanel.style.display = 'none';
+                });
+                fila.appendChild(btn);
+            }
+            return fila;
+        }
+
+        async function buscarPorCelular(celular) {
+            const limpio = (celular || '').replace(/\D/g, '');
+            if (!limpio || limpio.length < 7) {
+                if (celularStatus) celularStatus.textContent = '';
+                if (celularPanel) celularPanel.style.display = 'none';
+                return;
+            }
+            if (celularStatus) {
+                celularStatus.textContent = 'Verificando…';
+                celularStatus.className = 'cedula-checking';
+            }
+            try {
+                const cedActual = (cedulaInput && cedulaInput.value || '').trim();
+                let url = `/api/estudiantes-por-celular/${encodeURIComponent(limpio)}/`;
+                if (MODO === 'editar' && cedActual) {
+                    url += `?excluir_cedula=${encodeURIComponent(cedActual)}`;
+                }
+                const resp = await fetch(url);
+                const data = await resp.json();
+
+                if (data.ok && data.encontrados) {
+                    if (celularStatus) {
+                        const n = data.cantidad;
+                        celularStatus.textContent = n === 1
+                            ? '👥 Este número ya está en uso por 1 estudiante'
+                            : `👥 Este número ya está en uso por ${n} estudiantes`;
+                        celularStatus.className = 'cedula-new';
+                    }
+                    if (celularLista) {
+                        celularLista.innerHTML = '';
+                        data.estudiantes.forEach(est => {
+                            celularLista.appendChild(renderEstudianteCompartido(est));
+                        });
+                    }
+                    if (celularPanel) celularPanel.style.display = 'block';
+                } else {
+                    if (celularStatus) {
+                        celularStatus.textContent = '✓ Número disponible';
+                        celularStatus.className = 'cedula-found';
+                    }
+                    if (celularPanel) celularPanel.style.display = 'none';
+                }
+            } catch (err) {
+                console.error(err);
+                if (celularStatus) celularStatus.textContent = '';
+                if (celularPanel) celularPanel.style.display = 'none';
+            }
+        }
+
+        if (celularInput) {
+            celularInput.addEventListener('input', function () {
+                clearTimeout(celularTimer);
+                const valor = this.value;
+                celularTimer = setTimeout(() => buscarPorCelular(valor), 400);
+            });
+            if (celularInput.value) buscarPorCelular(celularInput.value);
         }
 
         // ── Talla de camiseta ─────────────────────────────────────────────

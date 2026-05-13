@@ -608,6 +608,65 @@ def api_estudiante_por_cedula(request, cedula):
     })
 
 
+def _normalizar_celular(celular):
+    """Deja solo dígitos para comparar números sin importar espacios/guiones."""
+    return ''.join(x for x in (celular or '') if x.isdigit())
+
+
+@login_required
+def api_estudiantes_por_celular(request, celular):
+    """
+    Busca todos los estudiantes que comparten un mismo número de celular.
+
+    Útil cuando un padre/madre registra a varios hijos con el mismo número,
+    o cuando una familia comparte el celular. NO bloquea la matrícula: es
+    solo un aviso informativo que también permite copiar los datos de un
+    estudiante existente.
+
+    Se monta como GET /api/estudiantes-por-celular/<celular>/
+    Acepta el parámetro opcional ?excluir_cedula=<cedula> para excluir al
+    estudiante que se está editando.
+    """
+    celular_digitos = _normalizar_celular(celular)
+    if not celular_digitos or len(celular_digitos) < 7:
+        return JsonResponse({'ok': True, 'encontrados': False, 'estudiantes': []})
+
+    excluir_cedula = (request.GET.get('excluir_cedula') or '').strip()
+
+    qs = Estudiante.objects.exclude(celular='')
+    if excluir_cedula:
+        qs = qs.exclude(cedula=excluir_cedula)
+
+    coincidencias = []
+    for est in qs.only('id', 'cedula', 'apellidos', 'nombres', 'correo',
+                       'celular', 'ciudad', 'nivel_formacion',
+                       'titulo_profesional', 'edad'):
+        est_digitos = _normalizar_celular(est.celular)
+        if not est_digitos:
+            continue
+        if est_digitos[-9:] == celular_digitos[-9:]:
+            coincidencias.append({
+                'id': est.id,
+                'cedula': est.cedula,
+                'apellidos': est.apellidos,
+                'nombres': est.nombres,
+                'nombre_completo': est.nombre_completo,
+                'edad': est.edad if est.edad is not None else '',
+                'correo': est.correo or '',
+                'celular': est.celular or '',
+                'ciudad': est.ciudad or '',
+                'nivel_formacion': est.nivel_formacion or '',
+                'titulo_profesional': est.titulo_profesional or '',
+            })
+
+    return JsonResponse({
+        'ok': True,
+        'encontrados': len(coincidencias) > 0,
+        'cantidad': len(coincidencias),
+        'estudiantes': coincidencias,
+    })
+
+
 @admin_requerido
 @require_http_methods(['POST'])
 def api_categoria_crear(request):

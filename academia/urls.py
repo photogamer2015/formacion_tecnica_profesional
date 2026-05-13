@@ -131,6 +131,9 @@ urlpatterns = [
     # ↓ NUEVO: autocompletar datos del estudiante por cédula
     path('api/estudiante/<str:cedula>/',
          views.api_estudiante_por_cedula, name='api_estudiante_por_cedula'),
+    # ↓ NUEVO: buscar estudiantes que comparten un mismo celular
+    path('api/estudiantes-por-celular/<str:celular>/',
+         views.api_estudiantes_por_celular, name='api_estudiantes_por_celular'),
 
     # ── Registro Administrativo ────────────────────────────────
     path('admin-panel/',
