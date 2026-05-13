@@ -564,5 +564,68 @@
             });
         }
     </script>
+
+    <!-- Simple Assistant Widget (keyword-based) -->
+    <div id="assistant-widget" style="position:fixed; right:18px; bottom:18px; z-index:1200;">
+        <button id="assistant-toggle" class="btn btn-primary" style="border-radius:999px; padding:10px 14px;">💬 Ayuda</button>
+        <div id="assistant-panel" style="display:none; width:360px; max-width:90vw; box-shadow:0 8px 24px rgba(0,0,0,0.18); background:white; border-radius:12px; overflow:hidden; margin-top:10px;">
+            <div style="padding:10px 12px; background:#1a237e; color:white; font-weight:700; display:flex; justify-content:space-between; align-items:center;">
+                <div>Asistente rápido</div>
+                <button id="assistant-close" style="background:transparent; border:none; color:white; font-size:16px; cursor:pointer;">✕</button>
+            </div>
+            <div id="assistant-messages" style="height:260px; overflow:auto; padding:12px; background:#fafafa;"></div>
+            <div style="display:flex; gap:8px; padding:10px; background:#fff;">
+                <input id="assistant-input" class="form-input" placeholder="Escribe tu pregunta..." style="flex:1;" />
+                <button id="assistant-send" class="btn btn-primary btn-sm">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function(){
+            function getCookie(name) {
+                const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+                return v ? v.pop() : '';
+            }
+            const toggle = document.getElementById('assistant-toggle');
+            const panel = document.getElementById('assistant-panel');
+            const closeBtn = document.getElementById('assistant-close');
+            const sendBtn = document.getElementById('assistant-send');
+            const input = document.getElementById('assistant-input');
+            const msgs = document.getElementById('assistant-messages');
+
+            function appendMessage(who, text) {
+                const el = document.createElement('div');
+                el.style.marginBottom = '8px';
+                el.innerHTML = `<div style="font-size:12px;color:#666;">${who}</div><div style="padding:8px 10px; border-radius:8px; background:${who==='Tú'?'#e8f0ff':'#fff'}; margin-top:6px;">${text}</div>`;
+                msgs.appendChild(el);
+                msgs.scrollTop = msgs.scrollHeight;
+            }
+
+            toggle.addEventListener('click', ()=> { panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; input.focus(); });
+            closeBtn.addEventListener('click', ()=> panel.style.display='none');
+
+            async function sendQuery() {
+                const q = input.value.trim();
+                if (!q) return;
+                appendMessage('Tú', q);
+                input.value = '';
+                try {
+                    const res = await fetch('{% url "academia:assistant_simple_chat" %}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                        body: JSON.stringify({ message: q, path: window.location.pathname })
+                    });
+                    const data = await res.json();
+                    appendMessage('Bot', data.reply || 'No hay respuesta');
+                } catch (err) {
+                    appendMessage('Bot', 'Error de conexión. Intenta nuevamente.');
+                }
+            }
+
+            sendBtn.addEventListener('click', sendQuery);
+            input.addEventListener('keydown', function(e){ if (e.key === 'Enter') sendQuery(); });
+        })();
+    </script>
 </body>
 </html>

@@ -449,6 +449,337 @@ class Matricula(models.Model):
 
     # ── Helpers para el control por módulo ──
     def pagos_por_modulo(self):
+        from collections import defaultdict
+        resultado = defaultdict(lambda: Decimal('0.00'))
+        for a in self.abonos.filter(
+            cuenta_para_saldo=True,
+            numero_modulo__isnull=False,
+        ):
+            resultado[a.numero_modulo] += a.monto
+        return dict(resultado)
+
+    def pagos_por_modulo_efectivo(self):
+        n_mod = (self.curso.numero_modulos if self.curso_id else 1) or 1
+        if n_mod <= 0:
+            return {}
+
+        valor_modulo = (
+            self.valor_neto / Decimal(n_mod) if n_mod > 0 else Decimal('0.00')
+        )
+
+        aplicado = {n: Decimal('0.00') for n in range(1, n_mod + 1)}
+
+        libre_total = Decimal('0.00')
+        for a in self.abonos.filter(cuenta_para_saldo=True):
+            if a.numero_modulo and 1 <= a.numero_modulo <= n_mod:
+                aplicado[a.numero_modulo] += a.monto
+            else:
+                libre_total += a.monto
+
+        carry = Decimal('0.00')
+        for n in range(1, n_mod + 1):
+            if aplicado[n] < valor_modulo:
+                falta = valor_modulo - aplicado[n]
+                tomar_carry = min(falta, carry)
+                aplicado[n] += tomar_carry
+                carry -= tomar_carry
+                falta -= tomar_carry
+                if falta > 0 and libre_total > 0:
+                    tomar_libre = min(falta, libre_total)
+                    aplicado[n] += tomar_libre
+                    libre_total -= tomar_libre
+
+            if aplicado[n] > valor_modulo and valor_modulo > 0:
+                carry += aplicado[n] - valor_modulo
+                aplicado[n] = valor_modulo
+
+        remanente = carry + libre_total
+        if remanente > 0 and n_mod >= 1:
+            aplicado[n_mod] += remanente
+
+        return aplicado
+
+    def desglose_pagos_por_modulo(self):
+        n_mod = (self.curso.numero_modulos if self.curso_id else 1) or 1
+        if n_mod <= 0:
+            return []
+
+        valor_modulo = (
+            self.valor_neto / Decimal(n_mod) if n_mod > 0 else Decimal('0.00')
+        )
+
+        aplicado = {n: Decimal('0.00') for n in range(1, n_mod + 1)}
+        fecha_ultimo = {n: None for n in range(1, n_mod + 1)}
+
+        for a in self.abonos.filter(
+            cuenta_para_saldo=True,
+            tipo_pago__in=('por_modulo', 'recuperacion'),
+            numero_modulo__isnull=False,
+        ).order_by('fecha', 'creado'):
+            n = a.numero_modulo
+            if not (1 <= n <= n_mod):
+                continue
+            aplicado[n] += a.monto
+            if fecha_ultimo[n] is None or a.fecha > fecha_ultimo[n]:
+                fecha_ultimo[n] = a.fecha
+
+        desglose = []
+        for n in range(1, n_mod + 1):
+            pagado = aplicado[n]
+            if pagado >= valor_modulo and valor_modulo > 0:
+                estado = 'Pagado'
+            elif pagado > 0:
+                estado = 'Parcial'
+            else:
+                estado = 'Pendiente'
+            desglose.append({
+                'numero': n,
+                'pagado': pagado,
+                'esperado': valor_modulo,
+                'estado': estado,
+                'fecha_ultimo_pago': fecha_ultimo[n],
+            })
+        return desglose
+
+    def estado_modulo(self, numero_modulo, valor_modulo=None, pagos_efectivos=None):
+        if valor_modulo is None:
+            n_mod = self.curso.numero_modulos if self.curso_id else 1
+            n_mod = n_mod or 1
+            valor_modulo = self.valor_neto / Decimal(n_mod)
+
+        if pagos_efectivos is None:
+            pagos_efectivos = self.pagos_por_modulo_efectivo()
+        pagado = pagos_efectivos.get(numero_modulo, Decimal('0.00'))
+
+        if pagado >= valor_modulo and valor_modulo > 0:
+            estado = 'Pagado'
+        elif pagado > 0:
+            estado = 'Parcial'
+        else:
+            estado = 'Pendiente'
+        return estado, pagado, valor_modulo
+
+    def save(self, *args, **kwargs):
+        if self.jornada_id:
+            try:
+                jornada_modalidad = self.jornada.modalidad
+                if jornada_modalidad:
+                    self.modalidad = jornada_modalidad
+            except JornadaCurso.DoesNotExist:
+                pass
+
+        if not self.valor_curso and self.curso_id:
+            self.valor_curso = self.curso.valor_para(self.modalidad)
+        super().save(*args, **kwargs)
+
+        try:
+            self._sync_comprobante()
+        except Exception:
+            pass
+
+    def _sync_comprobante(self):
+        if not self.registrado_por_id:
+            return
+
+        modalidad_comp = 'virtual' if self.modalidad == 'online' else 'presencial'
+
+        nombre_persona = (
+            f'{self.estudiante.apellidos} {self.estudiante.nombres}'.strip()
+            if self.estudiante_id else ''
+        )
+        celular = self.estudiante.celular if self.estudiante_id else ''
+        fact_nombres = self.fact_nombres or (self.estudiante.nombres if self.estudiante_id else '')
+        fact_apellidos = self.fact_apellidos or (self.estudiante.apellidos if self.estudiante_id else '')
+        fact_cedula = self.fact_cedula or (self.estudiante.cedula if self.estudiante_id else '')
+        fact_correo = self.fact_correo or (self.estudiante.correo if self.estudiante_id else '') or ''
+
+        defaults = {
+            'curso': self.curso,
+            'modalidad': modalidad_comp,
+            'fecha_inscripcion': self.fecha_matricula,
+            'jornada': (self.jornada.descripcion_legible if self.jornada_id else ''),
+            'inicio_curso': (self.jornada.fecha_inicio if self.jornada_id and self.jornada.fecha_inicio else self.fecha_matricula),
+            'nombre_persona': nombre_persona,
+            'celular': celular,
+            'tipo_registro': self.tipo_registro or None,
+            'pago_abono': self.valor_pagado or Decimal('0.00'),
+            'diferencia': self.saldo if self.saldo > 0 else Decimal('0.00'),
+            'link_comprobante': self.link_comprobante or '',
+            'vendedora': self.registrado_por,
+            'vendedora_nombre': (
+                f'{self.registrado_por.first_name} {self.registrado_por.last_name}'.strip()
+                or self.registrado_por.username
+            ),
+            'factura_realizada': self.factura_realizada or 'no',
+            'fact_nombres': fact_nombres,
+            'fact_apellidos': fact_apellidos,
+            'fact_cedula': fact_cedula,
+            'fact_correo': fact_correo,
+        }
+
+        comp = Comprobante.objects.filter(matricula=self).first()
+        if comp:
+            for k, v in defaults.items():
+                setattr(comp, k, v)
+            comp.save()
+        else:
+            Comprobante.objects.create(matricula=self, **defaults)
+
+    def __str__(self):
+        return f'{self.estudiante} – {self.curso} ({self.get_modalidad_display()})'
+
+
+# ─────────────────────────────────────────────────────────
+# Abonos / Pagos
+# ─────────────────────────────────────────────────────────
+
+class Abono(models.Model):
+    """Registro de un pago/abono realizado por un estudiante.
+
+    Este modelo se usa extensamente en vistas y formularios. Se mantiene
+    sencillo pero con los campos necesarios: fecha, monto, tipo de pago,
+    módulo asociado (opcional), si cuenta para saldo, método y banco.
+    """
+
+    TIPOS_PAGO = [
+        ('abono', 'Abono'),
+        ('por_modulo', 'Por módulo'),
+        ('pago_completo', 'Pago completo'),
+        ('recuperacion', 'Recuperación'),
+    ]
+
+    METODOS = [
+        ('efectivo', 'Efectivo'),
+        ('transferencia', 'Transferencia bancaria'),
+        ('tarjeta', 'Tarjeta'),
+    ]
+
+    BANCOS = [
+        ('pichincha', 'Pichincha'),
+        ('guayaquil', 'Guayaquil'),
+        ('produbanco', 'Produbanco'),
+        ('banco_pacifico', 'Banco del Pacífico'),
+        ('otro', 'Otro / Payphone'),
+    ]
+
+    matricula = models.ForeignKey(
+        Matricula, on_delete=models.CASCADE, related_name='abonos'
+    )
+    fecha = models.DateField()
+    monto = models.DecimalField(max_digits=10, decimal_places=2)
+    tipo_pago = models.CharField(max_length=20, choices=TIPOS_PAGO, default='abono')
+    numero_modulo = models.PositiveIntegerField(null=True, blank=True)
+    cuenta_para_saldo = models.BooleanField(default=True)
+    metodo = models.CharField(max_length=20, choices=METODOS, default='efectivo')
+    banco = models.CharField(max_length=30, choices=BANCOS, blank=True)
+    numero_recibo = models.CharField(max_length=30, unique=True, blank=True)
+    observaciones = models.TextField(blank=True)
+
+    registrado_por = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='abonos_registrados'
+    )
+    creado = models.DateTimeField(auto_now_add=True)
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Abono'
+        verbose_name_plural = 'Abonos'
+        ordering = ['-fecha', '-creado']
+
+    @staticmethod
+    def generar_numero_recibo():
+        """Genera el siguiente número de recibo correlativo: REC-0001, REC-0002..."""
+        ultimo = Abono.objects.filter(
+            numero_recibo__startswith='REC-'
+        ).order_by('-numero_recibo').first()
+
+        if ultimo and ultimo.numero_recibo[4:].isdigit():
+            siguiente = int(ultimo.numero_recibo[4:]) + 1
+        else:
+            siguiente = 1
+        return f'REC-{siguiente:04d}'
+
+    def save(self, *args, **kwargs):
+        if not self.numero_recibo:
+            self.numero_recibo = Abono.generar_numero_recibo()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.numero_recibo} — {self.matricula.estudiante.nombre_completo} — ${self.monto}'
+
+
+class AssistantQueryLog(models.Model):
+    """Registro de consultas al asistente (chatbot).
+
+    Se usa para analizar preguntas frecuentes y mejorar reglas/prompts.
+    """
+    user = models.ForeignKey('auth.User', null=True, blank=True, on_delete=models.SET_NULL)
+    path = models.CharField(max_length=255, blank=True)
+    message = models.TextField()
+    reply = models.TextField(blank=True)
+    metadata = models.JSONField(null=True, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Registro de consulta asistente'
+        verbose_name_plural = 'Registros de consultas asistente'
+        ordering = ['-created']
+
+    def __str__(self):
+        user = self.user.username if self.user else 'anon'
+        return f'{self.created:%Y-%m-%d %H:%M} | {user} | {self.message[:40]}'
+
+    @property
+    def tiene_descuento(self):
+        return (self.descuento or Decimal('0.00')) > 0
+
+    @property
+    def saldo(self):
+        if self.estado == 'retiro_voluntario':
+            return Decimal('0.00')
+        return self.valor_neto - (self.valor_pagado or Decimal('0.00'))
+
+    @property
+    def estado_pago(self):
+        if self.estado == 'retiro_voluntario':
+            return 'Retiro'
+        if self.saldo <= 0:
+            return 'Pagado'
+        if self.valor_pagado and self.valor_pagado > 0:
+            return 'Parcial'
+        return 'Pendiente'
+
+    @property
+    def horario(self):
+        if self.jornada and self.jornada.hora_inicio and self.jornada.hora_fin:
+            return f'{self.jornada.hora_inicio.strftime("%H:%M")} – {self.jornada.hora_fin.strftime("%H:%M")}'
+        return '—'
+
+    @property
+    def sede(self):
+        if self.jornada and self.jornada.ciudad:
+            return self.jornada.ciudad
+        return '—'
+
+    def recalcular_valor_pagado(self, save=True):
+        """
+        Recalcula valor_pagado como la suma de todos los abonos
+        (excluyendo los pagos de recuperación que se cobran APARTE).
+        Se llama automáticamente al guardar/eliminar un Abono.
+        """
+        # Solo cuenta para saldo los abonos donde cuenta_para_saldo=True
+        # (las recuperaciones cobradas APARTE no suman al valor pagado del curso).
+        total = self.abonos.filter(cuenta_para_saldo=True).aggregate(
+            s=models.Sum('monto')
+        )['s'] or Decimal('0.00')
+        self.valor_pagado = total
+        if save:
+            super().save(update_fields=['valor_pagado', 'actualizado'])
+        return total
+
+    # ── Helpers para el control por módulo ──
+    def pagos_por_modulo(self):
         """
         Devuelve un dict {numero_modulo: monto_pagado} sumando todos los
         abonos asociados explícitamente a cada módulo (numero_modulo no nulo).
@@ -555,310 +886,13 @@ class Matricula(models.Model):
              está 'Parcial'. Si no recibió ningún pago directo, 'Pendiente'.
 
         Devuelve una lista ordenada por número de módulo:
-            [
-                {
-                    'numero': int,
-                    'pagado': Decimal,           # solo abonos por_modulo
-                    'esperado': Decimal,
-                    'estado': 'Pagado' | 'Parcial' | 'Pendiente',
-                    'fecha_ultimo_pago': date | None,
-                },
-                ...
-            ]
         """
-        n_mod = (self.curso.numero_modulos if self.curso_id else 1) or 1
-        if n_mod <= 0:
-            return []
-
-        valor_modulo = (
-            self.valor_neto / Decimal(n_mod) if n_mod > 0 else Decimal('0.00')
-        )
-
-        aplicado = {n: Decimal('0.00') for n in range(1, n_mod + 1)}
-        fecha_ultimo = {n: None for n in range(1, n_mod + 1)}
-
-        # Solo abonos directos al módulo entran a la matriz.
-        # Además de los pagos explícitos 'por_modulo', incluimos
-        # las recuperaciones que se registraron con
-        # `cuenta_para_saldo=True` y `numero_modulo` asignado,
-        # porque deben afectar el estado del módulo cuando
-        # se suman al saldo del curso.
-        for a in self.abonos.filter(
-            cuenta_para_saldo=True,
-            tipo_pago__in=('por_modulo', 'recuperacion'),
-            numero_modulo__isnull=False,
-        ).order_by('fecha', 'creado'):
-            n = a.numero_modulo
-            if not (1 <= n <= n_mod):
-                continue
-            aplicado[n] += a.monto
-            if fecha_ultimo[n] is None or a.fecha > fecha_ultimo[n]:
-                fecha_ultimo[n] = a.fecha
-
-        desglose = []
-        for n in range(1, n_mod + 1):
-            pagado = aplicado[n]
-            if pagado >= valor_modulo and valor_modulo > 0:
-                estado = 'Pagado'
-            elif pagado > 0:
-                estado = 'Parcial'
-            else:
-                estado = 'Pendiente'
-            desglose.append({
-                'numero': n,
-                'pagado': pagado,
-                'esperado': valor_modulo,
-                'estado': estado,
-                'fecha_ultimo_pago': fecha_ultimo[n],
-            })
-        return desglose
-
-    def estado_modulo(self, numero_modulo, valor_modulo=None, pagos_efectivos=None):
-        """
-        Devuelve el estado de pago de UN módulo específico:
-            ('Pagado' | 'Parcial' | 'Pendiente', monto_pagado, monto_esperado)
-
-        valor_modulo: opcional; si no se pasa, se asume valor_neto / numero_modulos del curso.
-        pagos_efectivos: dict ya calculado por pagos_por_modulo_efectivo() para
-                         evitar recalcular en bucles.
-        """
-        if valor_modulo is None:
-            n_mod = self.curso.numero_modulos if self.curso_id else 1
-            n_mod = n_mod or 1
-            valor_modulo = self.valor_neto / Decimal(n_mod)
-
-        if pagos_efectivos is None:
-            pagos_efectivos = self.pagos_por_modulo_efectivo()
-        pagado = pagos_efectivos.get(numero_modulo, Decimal('0.00'))
-
-        if pagado >= valor_modulo and valor_modulo > 0:
-            estado = 'Pagado'
-        elif pagado > 0:
-            estado = 'Parcial'
-        else:
-            estado = 'Pendiente'
-        return estado, pagado, valor_modulo
-
-    def save(self, *args, **kwargs):
-        # Si la jornada está asignada, sincronizar la modalidad de la matrícula
-        # con la modalidad de la jornada (la jornada manda).
-        # Esto permite matricular online aunque el flujo entre por la URL presencial.
-        if self.jornada_id:
-            try:
-                jornada_modalidad = self.jornada.modalidad
-                if jornada_modalidad:
-                    self.modalidad = jornada_modalidad
-            except JornadaCurso.DoesNotExist:
-                pass
-
-        # Si no se asignó valor_curso, tomar el valor de la modalidad
-        if not self.valor_curso and self.curso_id:
-            self.valor_curso = self.curso.valor_para(self.modalidad)
-        super().save(*args, **kwargs)
-
-        # Después de guardar, sincronizar el comprobante asociado
-        # (no falla si no hay registrado_por o si los datos no son suficientes).
-        try:
-            self._sync_comprobante()
-        except Exception:
-            # No bloqueamos la matrícula si la sincronización del comprobante falla.
-            pass
-
-    def _sync_comprobante(self):
-        """
-        Crea o actualiza el Comprobante asociado a esta matrícula.
-        Sólo se ejecuta si hay un usuario registrado_por (vendedora) asignado.
-        El Comprobante refleja los datos de la matrícula y aparece en el
-        ranking de ventas (módulo Comprobantes).
-        """
-        if not self.registrado_por_id:
-            return  # Sin vendedora no se puede sincronizar
-
-        # Mapear modalidad de matrícula a la del comprobante (online → virtual)
-        modalidad_comp = 'virtual' if self.modalidad == 'online' else 'presencial'
-
-        nombre_persona = (
-            f'{self.estudiante.apellidos} {self.estudiante.nombres}'.strip()
-            if self.estudiante_id else ''
-        )
-        celular = self.estudiante.celular if self.estudiante_id else ''
-        # Si no hay datos de factura, usar los del estudiante como fallback razonable
-        fact_nombres = self.fact_nombres or (self.estudiante.nombres if self.estudiante_id else '')
-        fact_apellidos = self.fact_apellidos or (self.estudiante.apellidos if self.estudiante_id else '')
-        fact_cedula = self.fact_cedula or (self.estudiante.cedula if self.estudiante_id else '')
-        fact_correo = self.fact_correo or (self.estudiante.correo if self.estudiante_id else '') or ''
-
-        defaults = {
-            'curso': self.curso,
-            'modalidad': modalidad_comp,
-            'fecha_inscripcion': self.fecha_matricula,
-            'jornada': (self.jornada.descripcion_legible if self.jornada_id else ''),
-            'inicio_curso': (self.jornada.fecha_inicio if self.jornada_id and self.jornada.fecha_inicio else self.fecha_matricula),
-            'nombre_persona': nombre_persona,
-            'celular': celular,
-            'tipo_registro': self.tipo_registro or None,
-            'pago_abono': self.valor_pagado or Decimal('0.00'),
-            # La diferencia (saldo) se calcula contra el valor neto (con descuento)
-            'diferencia': self.saldo if self.saldo > 0 else Decimal('0.00'),
-            'link_comprobante': self.link_comprobante or '',
-            'vendedora': self.registrado_por,
-            'vendedora_nombre': (
-                f'{self.registrado_por.first_name} {self.registrado_por.last_name}'.strip()
-                or self.registrado_por.username
-            ),
-            'factura_realizada': self.factura_realizada or 'no',
-            'fact_nombres': fact_nombres,
-            'fact_apellidos': fact_apellidos,
-            'fact_cedula': fact_cedula,
-            'fact_correo': fact_correo,
-        }
-
-        # Buscar comprobante existente vinculado a esta matrícula
-        comp = Comprobante.objects.filter(matricula=self).first()
-        if comp:
-            for k, v in defaults.items():
-                setattr(comp, k, v)
-            comp.save()
-        else:
-            Comprobante.objects.create(matricula=self, **defaults)
-
-    def __str__(self):
-        return f'{self.estudiante} – {self.curso} ({self.get_modalidad_display()})'
-
-
-class Abono(models.Model):
-    """
-    Cada pago parcial o completo que hace un estudiante para una matrícula.
-    La suma de todos los abonos (que cuentan para saldo) = valor_pagado de la matrícula.
-
-    Tipos de pago:
-        - abono: pago parcial libre, sin atar a un módulo.
-        - pago_completo: el estudiante paga todo el saldo restante.
-        - por_modulo: el pago cubre un módulo específico (numero_modulo obligatorio).
-        - recuperacion: pago por una clase de recuperación. Puede:
-              * Sumar al saldo del curso (cuenta_para_saldo=True), o
-              * Cobrarse aparte (cuenta_para_saldo=False), no afecta el saldo.
-    """
-
-    METODOS_PAGO = [
-        ('efectivo', 'Efectivo'),
-        ('transferencia', 'Transferencia bancaria'),
-        ('tarjeta', 'Tarjeta de crédito/débito'),
-    ]
-
-    BANCOS = [
-        ('pichincha', 'Banco Pichincha'),
-        ('guayaquil', 'Banco Guayaquil'),
-        ('produbanco', 'Produbanco'),
-        ('pacifico', 'Banco Pacífico'),
-        ('payphone', 'Payphone'),
-        ('interbancaria', 'Interbancaria'),
-    ]
-
-    TIPOS_PAGO = [
-        ('abono', 'Abono'),
-        ('pago_completo', 'Pago Completo'),
-        ('por_modulo', 'Por Módulo'),
-        ('recuperacion', 'Clase de Recuperación'),
-    ]
-
-    matricula = models.ForeignKey(
-        Matricula, on_delete=models.CASCADE, related_name='abonos'
-    )
-    fecha = models.DateField(
-        help_text='Fecha en que se recibió el pago.'
-    )
-    monto = models.DecimalField(
-        max_digits=10, decimal_places=2,
-        help_text='Cantidad recibida en este pago (USD).'
-    )
-    tipo_pago = models.CharField(
-        max_length=20, choices=TIPOS_PAGO, default='abono',
-        help_text='Tipo de pago: abono libre, pago completo, por módulo o recuperación.'
-    )
-    numero_modulo = models.PositiveIntegerField(
-        null=True, blank=True,
-        help_text='Si el pago es por módulo o de recuperación, indica qué módulo cubre.'
-    )
-    cuenta_para_saldo = models.BooleanField(
-        default=True,
-        help_text='Si es FALSE, este pago NO suma al valor pagado del curso. '
-                  'Se usa cuando una clase de recuperación se cobra aparte.'
-    )
-    metodo = models.CharField(
-        max_length=20, choices=METODOS_PAGO, default='efectivo',
-        help_text='Forma en que se realizó el pago.'
-    )
-    banco = models.CharField(
-        max_length=20, choices=BANCOS, blank=True,
-        help_text='Banco usado (solo si el método es Transferencia bancaria).'
-    )
-    numero_recibo = models.CharField(
-        max_length=30, unique=True, blank=True,
-        help_text='Número de comprobante. Si se deja vacío, se genera automáticamente.'
-    )
-    observaciones = models.TextField(blank=True)
-
-    # Auditoría
-    registrado_por = models.ForeignKey(
-        'auth.User', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='abonos_registrados',
-    )
-    creado = models.DateTimeField(auto_now_add=True)
-    actualizado = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name = 'Abono'
-        verbose_name_plural = 'Abonos'
-        ordering = ['-fecha', '-creado']
-
-    @staticmethod
-    def generar_numero_recibo():
-        """Genera el siguiente número de recibo correlativo: REC-0001, REC-0002…"""
-        ultimo = Abono.objects.filter(
-            numero_recibo__startswith='REC-'
-        ).order_by('-numero_recibo').first()
-
-        if ultimo and ultimo.numero_recibo[4:].isdigit():
-            siguiente = int(ultimo.numero_recibo[4:]) + 1
-        else:
-            siguiente = 1
-        return f'REC-{siguiente:04d}'
-
-    def save(self, *args, **kwargs):
-        if not self.numero_recibo:
-            self.numero_recibo = Abono.generar_numero_recibo()
-        super().save(*args, **kwargs)
-        if self.matricula_id:
-            self.matricula.recalcular_valor_pagado()
-
-    def delete(self, *args, **kwargs):
-        matricula = self.matricula
-        super().delete(*args, **kwargs)
-        matricula.recalcular_valor_pagado()
-
-    def __str__(self):
-        return f'{self.numero_recibo} — ${self.monto} ({self.fecha})'
-
 
 class RecuperacionPendiente(models.Model):
-    """
-    Marca a un estudiante (matrícula) que faltó a una clase de un módulo
-    y debe recuperarla. La administración la cobra cuando el estudiante
-    asiste al día/horario de recuperación.
-
-    Flujo:
-        1. Al registrar/editar la matrícula, el admin marca "clase a recuperación"
-           y selecciona el módulo. Se crea una RecuperacionPendiente.
-        2. Aparece en la vista "Clases en Recuperación" con el saldo pendiente
-           del estudiante en ese momento.
-        3. Cuando el estudiante asiste y paga, se crea un Abono con
-           tipo_pago='recuperacion' y se vincula. La marca queda como `pagada=True`.
-    """
+    """Clase marcada como recuperación (falta de clase) pendiente de cobro/recuperación."""
 
     matricula = models.ForeignKey(
-        Matricula, on_delete=models.CASCADE,
-        related_name='recuperaciones_pendientes',
+        Matricula, on_delete=models.CASCADE, related_name='recuperaciones_pendientes'
     )
     numero_modulo = models.PositiveIntegerField(
         help_text='Módulo de la clase que se debe recuperar.'
@@ -868,13 +902,12 @@ class RecuperacionPendiente(models.Model):
     )
     saldo_pendiente_al_marcar = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
-        help_text='Saldo que el estudiante tenía pendiente al momento de marcar la recuperación. '
-                  'Se arrastra para mostrarlo cuando se cobre la recuperación.'
+        help_text='Saldo que el estudiante tenía pendiente al momento de marcar la recuperación. Se arrastra para mostrarlo cuando se cobre la recuperación.'
     )
     pagada = models.BooleanField(
-        default=False,
-        help_text='True cuando el estudiante ya recuperó la clase y se cobró.'
+        default=False, help_text='True cuando el estudiante ya recuperó la clase y se cobró.'
     )
+
     fecha_recuperacion = models.DateField(
         null=True, blank=True,
         help_text='Fecha en que efectivamente recuperó la clase.'
@@ -1350,7 +1383,7 @@ class Adicional(models.Model):
 
     @staticmethod
     def generar_numero_recibo():
-        """Genera el siguiente número de recibo correlativo: ADC-0001, ADC-0002…"""
+        """Genera el siguiente número de recibo correlativo: ADC-0001, ADC-0002..."""
         ultimo = Adicional.objects.filter(
             numero_recibo__startswith='ADC-'
         ).order_by('-numero_recibo').first()

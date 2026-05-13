@@ -1,4 +1,6 @@
 import json
+import os
+from django.utils import timezone
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -12,8 +14,199 @@ from .forms import (
     CategoriaForm, CursoForm, EstudianteForm,
     JornadaCursoForm, MatriculaForm,
 )
-from .models import Categoria, Curso, Estudiante, JornadaCurso, Matricula
+from .models import Categoria, Curso, Estudiante, JornadaCurso, Matricula, AssistantQueryLog
 from .permisos import admin_requerido, matricula_requerida
+
+
+@login_required
+@require_POST
+def assistant_simple_chat(request):
+    """Endpoint simple y basado en reglas para respuestas rápidas.
+
+    Espera JSON: { "message": "..." }
+    Responde JSON: { "reply": "..." }
+    """
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except Exception:
+        payload = {}
+    msg = (payload.get('message') or '').strip()
+
+    reply = _assistant_rules_reply(msg)
+
+    # Guardar log mínimo
+    try:
+        AssistantQueryLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            path=payload.get('path','') if isinstance(payload, dict) else '',
+            message=msg,
+            reply=reply,
+            metadata={'source':'rules'}
+        )
+    except Exception:
+        pass
+
+    return JsonResponse({'reply': reply})
+
+
+def _assistant_rules_reply(msg: str) -> str:
+    """Reglas simples reutilizables para respuestas cuando no hay LLM disponible."""
+    if not msg:
+        return 'Escribe tu pregunta y te ayudo con el sistema. Por ejemplo: "¿Cómo registro una matrícula?"'
+    low = msg.lower()
+    if 'matric' in low or 'registr' in low:
+        return ('Para registrar una matrícula: en el menú Matrícula selecciona la modalidad, '
+                'completa los datos del estudiante y la jornada, y pulsa "Registrar matrícula". '
+                'Si la cédula ya existe, los datos se autocompletan.')
+    if 'factur' in low:
+        return ('Si seleccionas "¿Factura realizada? = Sí", completa los campos de factura '
+                'Nombres, Apellidos, Cédula/RUC y Correo; el formulario bloqueará el envío hasta que estén completos.')
+    if 'recuper' in low:
+        return ('Las clases en recuperación se marcan desde la sección Recuperaciones. '
+                'Puedes marcar, cobrar (crear un abono tipo "recuperacion") o eliminar si no está pagada.')
+    if 'abono' in low or 'pago' in low or 'cobrar' in low:
+        return ('Para registrar pagos usa la vista de Abonos desde la matrícula del estudiante. '
+                'Los abonos pueden asignarse a módulos o a recuperación según corresponda.')
+    if 'curso' in low:
+        return ('Los cursos se añaden desde Cursos → Nuevo Curso (solo administradores). '
+                'Asegúrate de configurar jornadas y los valores para presencial/online.')
+    if 'jornada' in low:
+        return ('Selecciona la jornada que corresponda en el formulario de matrícula; la jornada define la modalidad final.')
+    if 'vended' in low or 'vendedora' in low:
+        return ('La vendedora se asigna automáticamente al usuario que registra la matrícula. Aparece en la sección Vendedora del formulario.')
+    if 'imprimir' in low or 'ficha' in low:
+        return ('Puedes exportar listados a PDF/Excel desde las vistas de lista. La ficha de matrícula actualmente se puede imprimir desde la página de la matrícula — si quieres, puedo añadir un botón que genere la ficha imprimible.')
+    return ('No estoy seguro. Puedes consultar la sección de ayuda en /ayuda/ o escribir una pregunta más específica, por ejemplo "¿Cómo cobro una recuperación?"')
+
+
+@login_required
+@require_POST
+def assistant_llm_chat(request):
+    """Endpoint que usa un LLM externo (OpenAI) cuando hay clave, y registra logs.
+
+    Request JSON: { message: str, path?: str }
+    Response JSON: { reply: str }
+    """
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except Exception:
+        payload = {}
+    msg = (payload.get('message') or '').strip()
+    page = payload.get('path') or request.META.get('PATH_INFO','')
+
+    reply = ''
+    used_model = None
+    openai_key = os.environ.get('OPENAI_API_KEY')
+    if openai_key and msg:
+        try:
+            import openai
+            openai.api_key = openai_key
+            model = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
+            used_model = model
+            system_prompt = (
+                'Eres un asistente útil para el sistema de gestión académica. ' 
+                'Responde de forma concisa y practica, ofreciendo pasos claros. Si la pregunta no es clara, pide más detalles.'
+            )
+            resp = openai.ChatCompletion.create(
+                model=model,
+                messages=[
+                    {'role':'system','content': system_prompt},
+                    {'role':'user','content': f'Contexto de la página: {page}\nPregunta: {msg}'}
+                ],
+                max_tokens=500,
+                temperature=0.2,
+            )
+            reply = resp['choices'][0]['message']['content'].strip()
+        except Exception as e:
+            # Fallback a reglas simples
+            reply = _assistant_rules_reply(msg)
+            used_model = None
+    else:
+        # Si no hay clave de OpenAI, intentar una búsqueda local en README y templates
+        reply = None
+        try:
+            reply = _assistant_local_search(msg)
+        except Exception:
+            reply = None
+        if not reply:
+            reply = _assistant_rules_reply(msg)
+
+    # Guardar log
+    try:
+        AssistantQueryLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            path=page,
+            message=msg,
+            reply=reply,
+            metadata={'model': used_model}
+        )
+    except Exception:
+        pass
+
+    return JsonResponse({'reply': reply})
+
+
+def _assistant_local_search(query: str) -> str:
+    """Busca palabras clave en README.md y archivos de templates para dar una respuesta contextual local.
+
+    Retorna un texto breve con hasta 3 fragmentos encontrados, o cadena vacía si no hay matches.
+    """
+    import glob
+    if not query or not query.strip():
+        return ''
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    files = []
+    # Priorizar README y templates
+    candidates = [os.path.join(root, 'README.md')]
+    candidates += glob.glob(os.path.join(root, 'templates', '**', '*.html'), recursive=True)
+    candidates += glob.glob(os.path.join(root, '**', '*.md'), recursive=True)
+
+    tokens = [t.lower() for t in query.split() if len(t) > 2]
+    if not tokens:
+        return ''
+
+    hits = []
+    for fp in candidates:
+        try:
+            with open(fp, 'r', encoding='utf-8', errors='ignore') as fh:
+                text = fh.read()
+        except Exception:
+            continue
+        low = text.lower()
+        score = sum(low.count(tok) for tok in tokens)
+        if score <= 0:
+            continue
+        # extract short snippets around first occurrences
+        snippets = []
+        for tok in tokens:
+            idx = low.find(tok)
+            if idx >= 0:
+                start = max(0, idx - 80)
+                end = min(len(text), idx + 160)
+                snippet = text[start:end].replace('\n', ' ').strip()
+                snippets.append(snippet)
+        hits.append((score, fp, snippets[:2]))
+
+    if not hits:
+        return ''
+
+    # ordenar por score y devolver hasta 3 fragmentos
+    hits.sort(reverse=True, key=lambda x: x[0])
+    parts = []
+    taken = 0
+    for score, fp, snippets in hits[:3]:
+        rel = os.path.relpath(fp, root)
+        parts.append(f'Encontrado en {rel}:')
+        for s in snippets:
+            parts.append(f'• {s}')
+            taken += 1
+            if taken >= 3:
+                break
+        if taken >= 3:
+            break
+
+    parts.append('\nSi quieres más detalle, escribe una pregunta más concreta o activa la API.')
+    return '\n'.join(parts)
 
 
 # ─────────────────────────────────────────────────────────

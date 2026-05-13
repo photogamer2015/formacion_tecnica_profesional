@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import (
     Adicional, Categoria, Comprobante, Curso, JornadaCurso,
     Estudiante, Matricula, PersonaExterna, RecuperacionPendiente,
+    AssistantQueryLog,
 )
 
 
@@ -214,3 +215,14 @@ class RecuperacionPendienteAdmin(admin.ModelAdmin):
             'fields': ('creado', 'actualizado'),
         }),
     )
+
+
+@admin.register(AssistantQueryLog)
+class AssistantQueryLogAdmin(admin.ModelAdmin):
+    list_display = ('created', 'user', 'path', 'message_short')
+    search_fields = ('message', 'reply', 'path', 'user__username')
+    readonly_fields = ('user', 'path', 'message', 'reply', 'metadata', 'created')
+
+    def message_short(self, obj):
+        return (obj.message[:80] + '...') if len(obj.message) > 80 else obj.message
+    message_short.short_description = 'Mensaje'

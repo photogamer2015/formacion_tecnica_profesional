@@ -227,6 +227,10 @@
             <div style="font-size:11px; color:#888; font-weight:600; letter-spacing:0.5px;">PAGADO</div>
             <div style="font-size:26px; font-weight:700; color:#2e7d32; margin-top:4px;">{{ conteo_estado.Pagado }}</div>
             <div style="font-size:12px; color:#666; margin-top:4px;">Sin saldo pendiente</div>
+            <br>
+            <hr>
+            <br>
+            <div style="font-size:12px; color:#666; margin-top:2px;">Clic para ver detalles</div>
         </div>
     </a>
 
@@ -235,6 +239,10 @@
             <div style="font-size:11px; color:#888; font-weight:600; letter-spacing:0.5px;">PARCIAL</div>
             <div style="font-size:26px; font-weight:700; color:#f0ad4e; margin-top:4px;">{{ conteo_estado.Parcial }}</div>
             <div style="font-size:12px; color:#666; margin-top:4px;">Pago incompleto</div>
+            <br>
+            <hr>
+            <br>
+            <div style="font-size:12px; color:#666; margin-top:2px;">Clic para ver detalles</div>
         </div>
     </a>
 
@@ -243,6 +251,10 @@
             <div style="font-size:11px; color:#888; font-weight:600; letter-spacing:0.5px;">PENDIENTE</div>
             <div style="font-size:26px; font-weight:700; color:#c62828; margin-top:4px;">{{ conteo_estado.Pendiente }}</div>
             <div style="font-size:12px; color:#666; margin-top:4px;">Sin abonos</div>
+            <br>
+            <hr>
+            <br>
+            <div style="font-size:12px; color:#666; margin-top:2px;">Clic para ver detalles</div>
         </div>
     </a>
 
@@ -251,6 +263,22 @@
             <div style="font-size:11px; color:#888; font-weight:600; letter-spacing:0.5px;">RETIRO VOLUNTARIO</div>
             <div style="font-size:26px; font-weight:700; color:#757575; margin-top:4px;">${{ totales.total_retiro|floatformat:2 }}</div>
             <div style="font-size:12px; color:#666; margin-top:4px;">{{ conteo_estado.Retiro }} alumno(s) retirado(s)</div>
+            <br>
+            <hr>
+            <br>
+            <div style="font-size:12px; color:#666; margin-top:2px;">Clic para ver detalles</div>
+        </div>
+    </a>
+    <a href="{% url 'academia:comprobante_totales' %}" style="text-decoration:none;">
+        <div class="card-box" style="border-top:4px solid #FFD700; padding:16px; cursor:pointer; transition: transform 0.15s;"
+             onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="font-size:11px; color:#888; font-weight:600; letter-spacing:0.5px;">RANKING ASESORAS</div>
+            <div style="font-size:22px; font-weight:700; color:#1a237e; margin-top:4px;">🏆 Totales</div>
+            <div style="font-size:12px; color:#666; margin-top:4px;">Ver desempeño del equipo</div>
+            <br>
+            <hr>
+            <br>
+            <div style="font-size:12px; color:#666; margin-top:2px;">Clic para ver detalles</div>
         </div>
     </a>
 
@@ -271,15 +299,6 @@
         <div style="font-size:22px; font-weight:700; color:#c62828; margin-top:4px;">${{ totales.total_pendiente|floatformat:2 }}</div>
         <div style="font-size:12px; color:#666; margin-top:4px;">Saldo total</div>
     </div>
-
-    <a href="{% url 'academia:comprobante_totales' %}" style="text-decoration:none;">
-        <div class="card-box" style="border-top:4px solid #FFD700; padding:16px; cursor:pointer; transition: transform 0.15s;"
-             onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-            <div style="font-size:11px; color:#888; font-weight:600; letter-spacing:0.5px;">RANKING ASESORAS</div>
-            <div style="font-size:22px; font-weight:700; color:#1a237e; margin-top:4px;">🏆 Totales</div>
-            <div style="font-size:12px; color:#666; margin-top:4px;">Ver desempeño del equipo</div>
-        </div>
-    </a>
 
 </div>
 

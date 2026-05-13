@@ -186,4 +186,8 @@ urlpatterns = [
     # ── Examen Supletorio rápido (desde matrícula) ──
     path('matricula/<int:matricula_pk>/supletorio/',
          views_adicional.supletorio_marcar, name='supletorio_marcar'),
+
+     # ── Bot simple (keyword-based) ──────────────────────────────
+     path('assistant/simple-chat/', views.assistant_simple_chat, name='assistant_simple_chat'),
+     path('assistant/chat/', views.assistant_llm_chat, name='assistant_llm_chat'),
 ]
